@@ -1,0 +1,19 @@
+id: IDEA-105
+title: "Maestro: распределённое исполнение (фазы 1–3)"
+date: 2026-08-12
+source:
+  kind: rd
+  ref: "maestro PR #90 (Phase 0 merged 2026-07-22): transport-agnostic execution layer + roadmap"
+priority: medium
+business_attractiveness: 4
+status: new
+type: enhancement
+hypothesis: >-
+  Удалённые воркеры поверх transport-agnostic слоя дадут Maestro исполнение
+  DAG-ов на нескольких машинах с сохранением recoverability и audit trail;
+  выгода — длинные прогоны перестают монополизировать рабочую машину
+  владельца.
+essence: "Фазы 1–3 роадмапа distributed execution: remote workers, scheduling, recovery."
+problem: "Все прогоны Maestro исполняются локально; ёмкость и изоляция ограничены."
+open_questions:
+  - "Вендорить ContainerRuntime у proctor или свой минимальный слой?"

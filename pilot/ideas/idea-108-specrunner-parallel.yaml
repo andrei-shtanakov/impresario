@@ -1,0 +1,18 @@
+id: IDEA-108
+title: "spec-runner: параллельное исполнение независимых задач (H-2)"
+date: 2026-08-12
+source:
+  kind: rd
+  ref: "spec-runner: хвост H-2 после gates v1.2–v1.3 (memory maestro-gates-v12, 2026-07-13)"
+priority: low
+business_attractiveness: 2
+status: new
+type: enhancement
+hypothesis: >-
+  Параллельный запуск независимых TASK-ов сократит wall-clock прогонов
+  spec-runner на многозадачных спеках, сохранив детерминизм отчётов;
+  выгода — быстрые циклы для больших спек без изменения контрактов.
+essence: "Scheduler независимых задач внутри одного прогона spec-runner."
+problem: "Большие спеки исполняются строго последовательно."
+open_questions:
+  - "Как параллелизм уживается с gates и последовательной семантикой отчёта?"

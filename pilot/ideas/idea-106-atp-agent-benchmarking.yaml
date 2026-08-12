@@ -1,0 +1,19 @@
+id: IDEA-106
+title: "ATP: сервис бенчмаркинга агентов для routing-решений"
+date: 2026-08-12
+source:
+  kind: strategy
+  ref: "R-06b reframing 2026-04-25 «Agent benchmarking via ATP» + ecosystem-roadmap §1.1"
+priority: high
+business_attractiveness: 4
+status: new
+type: enhancement
+hypothesis: >-
+  Регулярный бенчмаркинг агентов/моделей через ATP с версионированным
+  benchmark-контрактом даст arbiter routing-grade данные (pass-rate, cost,
+  provenance) для доказуемого выбора исполнителя; выгода — маршрутизация
+  задач по evidence, а не по привычке.
+essence: "Довести R-06b M4→M5: бенчмарк-прогоны как продукт с версионированным контрактом."
+problem: "Выбор агента под задачу опирается на память владельца, а не на свежие замеры."
+open_questions:
+  - "Каденция прогонов и бюджет токенов на бенчмарки?"
