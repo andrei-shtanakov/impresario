@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -76,8 +77,35 @@ def cmd_rank(
     Apply guards (each violation is a typed finding, nothing is written):
     schema of every input; assessment input_hash == current idea hash;
     expected backlog version; single-writer lock; validate-then-atomic-
-    replace; monotonic version; immutable run record.
+    replace; monotonic version; immutable run record. In apply mode the
+    whole read-check-write sequence runs under the lock so concurrent
+    writers cannot invalidate the checks between reads and writes.
     """
+    lock = ws.single_writer_lock(workspace) if apply else contextlib.nullcontext()
+    with lock:
+        return _rank_impl(
+            workspace,
+            contracts_dir,
+            apply=apply,
+            expected_version=expected_version,
+            backlog_id=backlog_id,
+            policy_file=policy_file,
+            actor=actor,
+            now_iso=now_iso,
+        )
+
+
+def _rank_impl(
+    workspace: Path,
+    contracts_dir: Path,
+    *,
+    apply: bool,
+    expected_version: int | None,
+    backlog_id: str | None,
+    policy_file: Path | None,
+    actor: str | None,
+    now_iso: str | None,
+) -> tuple[Report, dict[str, Any] | None]:
     validators = load_validators(contracts_dir)
     report = Report()
     now = now_iso or _now_iso()
@@ -217,9 +245,9 @@ def cmd_rank(
     if report.errors:
         return report, proposed
 
-    with ws.single_writer_lock(workspace):
-        ws.write_atomic(ws.backlog_path(workspace), ws.dump_yaml(proposed))
-        ws.write_atomic(run_path, ws.dump_yaml(run_record))
+    # The caller already holds the single-writer lock in apply mode.
+    ws.write_atomic(ws.backlog_path(workspace), ws.dump_yaml(proposed))
+    ws.write_atomic(run_path, ws.dump_yaml(run_record))
     return report, proposed
 
 
@@ -249,7 +277,34 @@ def cmd_select(
     ranked item, then writes an immutable GateDecision, bumps the backlog
     version with the item marked selected, and updates the idea card's
     status line. Stale input fails the whole command; nothing is written.
+    The whole read-check-write sequence runs under the single-writer lock,
+    so a concurrent writer cannot invalidate the checks between the reads
+    and the writes.
     """
+    with ws.single_writer_lock(workspace):
+        return _select_locked(
+            workspace,
+            contracts_dir,
+            idea_id=idea_id,
+            expected_version=expected_version,
+            actor=actor,
+            reason=reason,
+            role=role,
+            now_iso=now_iso,
+        )
+
+
+def _select_locked(
+    workspace: Path,
+    contracts_dir: Path,
+    *,
+    idea_id: str,
+    expected_version: int,
+    actor: str,
+    reason: str,
+    role: str | None,
+    now_iso: str | None,
+) -> tuple[Report, dict[str, Any] | None]:
     validators = load_validators(contracts_dir)
     report = Report()
     now = now_iso or _now_iso()
@@ -306,6 +361,12 @@ def cmd_select(
         )
         return report, None
 
+    _check_selected_idea_freshness(
+        workspace, data, idea_ref, idea_path, validators, report
+    )
+    if report.errors:
+        return report, None
+
     existing_gd = {
         d.data["decision_id"]
         for d in _load_dir(
@@ -360,8 +421,62 @@ def cmd_select(
     if report.errors:
         return report, None
 
-    with ws.single_writer_lock(workspace):
-        ws.write_atomic(decision_path, ws.dump_yaml(decision))
-        ws.write_atomic(ws.backlog_path(workspace), ws.dump_yaml(new_backlog))
-        ws.set_idea_status(idea_path, "selected")
+    # Pre-flight the card edit: every fallible step happens before the first
+    # write, so a failure cannot leave decision/backlog/card half-applied.
+    # The caller already holds the single-writer lock.
+    updated_card = ws.prepare_idea_status(idea_path, "selected")
+
+    ws.write_atomic(decision_path, ws.dump_yaml(decision))
+    ws.write_atomic(ws.backlog_path(workspace), ws.dump_yaml(new_backlog))
+    ws.write_atomic(idea_path, updated_card)
     return report, decision
+
+
+def _check_selected_idea_freshness(
+    workspace: Path,
+    backlog: dict[str, Any],
+    idea_ref: str,
+    idea_path: Path,
+    validators: dict,
+    report: Report,
+) -> None:
+    """The selected card must be semantically what the rank evaluated.
+
+    Equivalence is by canonical hash of the parsed document (comments and
+    formatting do not count; field changes do). The run record behind the
+    current backlog version (last_run_id) carries the input_hash of every
+    idea; a mismatch means the card changed after ranking, so the rank the
+    human is looking at is stale.
+    """
+    run_id = str(backlog.get("last_run_id"))
+    run_path = ws.runs_dir(workspace) / f"{run_id.lower()}.yaml"
+    if not run_path.exists():
+        report.errors.append(
+            Finding(
+                code="RUN_RECORD_MISSING",
+                path=str(run_path),
+                message=(
+                    f"run record {run_id} behind backlog version "
+                    f"{backlog.get('version')} is missing; cannot prove the "
+                    "rank is fresh"
+                ),
+            )
+        )
+        return
+    run = _load_checked(run_path, "run-record", validators, report)
+    if run is None:
+        return
+    recorded = next((i for i in run.data["inputs"] if i["idea_ref"] == idea_ref), None)
+    current = canonical_doc_hash(load_doc(idea_path).data)
+    if recorded is None or recorded["input_hash"] != current:
+        report.errors.append(
+            Finding(
+                code="STALE_INPUT",
+                path=str(idea_path),
+                message=(
+                    f"{idea_ref} changed after ranking run {run_id} "
+                    f"(recorded {recorded['input_hash'] if recorded else 'nothing'}, "
+                    f"current {current}); re-run backlog rank before selecting"
+                ),
+            )
+        )

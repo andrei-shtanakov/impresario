@@ -208,6 +208,51 @@ def test_select_stale_version_writes_nothing(workspace: Path) -> None:
     assert load_doc(workspace / "backlog.yaml").data["version"] == 1
 
 
+def test_select_rejects_card_changed_after_ranking(workspace: Path) -> None:
+    _rank(workspace, apply=True)
+    idea_path = workspace / "ideas" / "idea-001.yaml"
+    data = yaml.safe_load(idea_path.read_text(encoding="utf-8"))
+    data["title"] = "Edited after ranking"
+    _write(idea_path, data)
+    report, _ = _select(workspace, "IDEA-001")
+    assert {f.code for f in report.errors} == {"STALE_INPUT"}
+    assert not (workspace / "decisions").exists() or not list(
+        (workspace / "decisions").glob("*.yaml")
+    )
+    assert load_doc(workspace / "backlog.yaml").data["version"] == 1
+
+
+def test_select_requires_run_record(workspace: Path) -> None:
+    _rank(workspace, apply=True)
+    for run in (workspace / "runs").glob("*.yaml"):
+        run.unlink()
+    report, _ = _select(workspace, "IDEA-001")
+    assert {f.code for f in report.errors} == {"RUN_RECORD_MISSING"}
+
+
+def test_select_keeps_inline_status_comment(workspace: Path) -> None:
+    idea_path = workspace / "ideas" / "idea-001.yaml"
+    text = idea_path.read_text(encoding="utf-8")
+    idea_path.write_text(
+        text.replace("status: new", "status: new  # funnel stage"),
+        encoding="utf-8",
+    )
+    _rank(workspace, apply=True)  # comment does not change the canonical hash
+    report, _ = _select(workspace, "IDEA-001")
+    assert report.ok, [f.message for f in report.errors]
+    updated = idea_path.read_text(encoding="utf-8")
+    assert "status: selected  # funnel stage" in updated
+
+
+def test_prepare_idea_status_requires_status_line(tmp_path: Path) -> None:
+    from impresario.workspace import WorkspaceError, prepare_idea_status
+
+    card = tmp_path / "idea.yaml"
+    card.write_text("id: IDEA-001\ntitle: no status here\n", encoding="utf-8")
+    with pytest.raises(WorkspaceError):
+        prepare_idea_status(card, "selected")
+
+
 def test_select_rejects_non_ranked_idea(workspace: Path) -> None:
     idea = _idea(3)
     _write(workspace / "ideas" / "idea-003.yaml", idea)

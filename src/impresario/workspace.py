@@ -89,21 +89,35 @@ def next_id(prefix: str, *, existing_ids: set[str]) -> str:
     return f"{prefix}-{highest + 1:03d}"
 
 
-def set_idea_status(idea_path: Path, new_status: str) -> None:
-    """Rewrite only the top-level `status:` line, preserving all other bytes.
+_STATUS_LINE_RE = re.compile(
+    r"^status:[ \t]*(?:\"[^\"]*\"|'[^']*'|[^#\n]*?)[ \t]*(?P<comment>#[^\n]*)?$",
+    flags=re.MULTILINE,
+)
+
+
+def prepare_idea_status(idea_path: Path, new_status: str) -> str:
+    """Return the card text with only the `status:` line rewritten.
 
     A YAML round-trip would drop comments and reorder keys (the ruamel
     block-rewrite lesson); the funnel status is a single scalar line, so a
-    targeted line edit is the safe write.
+    targeted line edit is the safe write. Quoted values and inline comments
+    are supported; the comment is preserved. Raising here (before any write)
+    lets callers pre-flight the edit and keep multi-file updates all-or-
+    nothing up to I/O failures.
     """
     text = idea_path.read_text(encoding="utf-8")
-    updated, count = re.subn(
-        r"^status:\s*\S+\s*$",
-        f"status: {new_status}",
-        text,
-        count=1,
-        flags=re.MULTILINE,
-    )
+
+    def _replace(match: re.Match[str]) -> str:
+        comment = match.group("comment")
+        suffix = f"  {comment}" if comment else ""
+        return f"status: {new_status}{suffix}"
+
+    updated, count = _STATUS_LINE_RE.subn(_replace, text, count=1)
     if count != 1:
         raise WorkspaceError(f"{idea_path}: top-level 'status:' line not found")
-    write_atomic(idea_path, updated)
+    return updated
+
+
+def set_idea_status(idea_path: Path, new_status: str) -> None:
+    """Rewrite only the top-level `status:` line, preserving all other bytes."""
+    write_atomic(idea_path, prepare_idea_status(idea_path, new_status))

@@ -55,10 +55,15 @@ uv run impresario backlog select pilot IDEA-101 \
 
 Гарантии apply/select: schema всех входов; `input_hash` каждого assessment
 равен текущему хэшу карточки (`STALE_INPUT` иначе); `--expected-version`
-совпадает с текущей (`VERSION_CONFLICT` иначе); single-writer lock;
-validate-then-atomic-replace; монотонная версия; собственные выходы
-проходят те же контракты. Детерминизм (P-07) — у rank engine от
-нормализованных assessments; новый LLM-вызов = новый evaluation run.
+совпадает с текущей (`VERSION_CONFLICT` иначе); select дополнительно
+сверяет выбираемую карточку с run record текущей версии бэклога
+(`STALE_INPUT` / `RUN_RECORD_MISSING`) и пре-флайтит правку карточки до
+первой записи; single-writer lock; validate-then-atomic-replace;
+монотонная версия; собственные выходы проходят те же контракты.
+Канонический хэш считается по распарсенному документу: комментарии в YAML
+его не меняют, смысловые правки — меняют. Детерминизм (P-07) — у rank
+engine от нормализованных assessments; новый LLM-вызов = новый
+evaluation run.
 
 ## Режимы валидации
 
