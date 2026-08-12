@@ -277,6 +277,21 @@ def test_cli_readiness_missing_workspace(
     assert out["ok"] is False
 
 
+def test_placeholder_reason_is_refused(ready_ws: Path) -> None:
+    version = load_doc(ready_ws / "proposal.yaml").data["version"]
+    report, record = _decide(
+        ready_ws,
+        T0,
+        gate_id="qg5_business",
+        decision="approve",
+        expected_version=version,
+        reason="<почему approve>",
+    )
+    assert record is None
+    assert {f.code for f in report.errors} == {"USAGE"}
+    assert "placeholder" in report.errors[0].message
+
+
 def test_version_conflict(ready_ws: Path) -> None:
     report, record = _decide(
         ready_ws,

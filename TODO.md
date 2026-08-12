@@ -50,10 +50,12 @@
   `impresario gate decide` — Gate A/B, recycle/hold/kill/resume по таблице
   FSM, readiness = вычисляемое предусловие (blocked → гейт не открывается,
   ложное решение не создаётся), supersedes-цепочка, CAS + lock
-- [ ] **Прогон гейтов PP-101** (готов к запуску): Gate A → readiness →
-  Gate B решениями человека; после `approved` — стадия 6 = реализация
-  fail-loud + `_PLAN_EXEMPT` + постоянного раскрытия в robin-runtime
-  (по правилу FSM реализация НЕ начинается до `approved`)
+- [x] **QG-5 ПРОЙДЕН 2026-08-12 (решения andrei)**: Gate A (GD-001,
+  business_owner) → readiness ok → Gate B (GD-002, committee_chair) →
+  **PP-101 `approved` v8** — первый approved ProductProposal, полный
+  evidence-след Idea → approved. **Стадия 6 разблокирована**: реализация
+  fail-loud + `_PLAN_EXEMPT` + постоянного раскрытия применённых и
+  неизвестных exemptions в дайджесте robin-runtime (scope в CD-503)
 - [ ] Входной контракт approved ProductProposal для steward/discovery
 - [ ] dispatcher/Robin: read-only `product_proposal/gate_waiting` observation
 

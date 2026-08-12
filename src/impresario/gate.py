@@ -47,6 +47,12 @@ def _now_iso() -> str:
     return datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _looks_like_placeholder(reason: str) -> bool:
+    """Copy-pasted example placeholders must not become immutable evidence."""
+    stripped = reason.strip()
+    return (stripped.startswith("<") and stripped.endswith(">")) or not stripped
+
+
 def _decisions(workspace: Path) -> list[Doc]:
     directory = ws.decisions_dir(workspace)
     if not directory.is_dir():
@@ -181,6 +187,13 @@ def _decide_locked(
             Finding(code=code, path=str(workspace / "proposal.yaml"), message=message)
         )
         return report, None
+
+    if _looks_like_placeholder(reason):
+        return err(
+            "USAGE",
+            f"reason looks like an unfilled placeholder: {reason!r}; an "
+            "immutable decision record needs the actual motivation",
+        )
 
     proposal = load_doc(workspace / "proposal.yaml")
     data = proposal.data
