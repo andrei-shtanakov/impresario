@@ -145,6 +145,46 @@ Immutable запись решения. Поля: `gate_id` (`qg4_backlog` | `qg5
 проверяет их по актуальным (принадлежащим той же идее и proposal)
 артефактам из `refs`.
 
+## Состояние цикла: loop-state (сигнал `needs_human`)
+
+Файл `loop.state` (JSON, корень loop-workspace) — законтрактованный
+**текущий projection** состояния цикла
+([loop-state/v1](../contracts/loop-state/v1/schema.json)): конфигурация
+запуска (`loop_id`, `idea_ref` + `idea_input_hash`, `proposal_id`,
+`exchange_log_id`, `max_iterations`) и текущая остановка `stop`. Это не
+журнал: история (`needs_human` → resume) остаётся в immutable evidence
+(ExchangeLog, trace).
+
+Семантика для внешних наблюдателей (dispatcher и др.):
+
+- `stop: null` — активного ожидания нет (цикл не завершён: до первого
+  терминального вердикта или после resume).
+- `stop.verdict = "needs_human"` — **активное ожидание человека**;
+  `reason` обязателен и непуст. Identity ожидания —
+  `(loop_id, stop.iteration)`; freshness — `stop.at`.
+- Terminal projection сохраняет stop: `ready_for_business` / `failed`
+  не откатываются в `null`; единственный переход `stop → null` — resume
+  из `needs_human` (`failed` не resumable, fail-closed).
+- Наблюдатель строго read-only и вендорит пинованную копию схемы;
+  неизвестная версия / невалидный / нечитаемый файл = **unknown, а не
+  «ожиданий нет»** (fail-closed).
+
+Запись файла — validate-then-atomic-replace (tool-enforced): невалидное
+состояние не пишется, файл остаётся в последнем консистентном виде.
+Resume — типизированный человеческий акт: CAS-предусловие
+(`stop.verdict = needs_human`), затем immutable evidence возобновления
+(`resumed`: by, reason, iteration, at) с dedup по identity
+`(loop_id, iteration)` — retry после частичного сбоя между evidence и
+replace не дублирует запись и сохраняет `at` первой попытки, — затем
+atomic-replace со `stop: null` и расширенным бюджетом. После успешного
+replace повторный resume отклоняется CAS-предусловием.
+
+Принадлежность бандлу — tool-enforced кросс-чеками (`LOOPSTATE_*`):
+`proposal_id` совпадает ровно с одним proposal; `idea_ref` и
+`idea_input_hash` — с идеей, от которой построен proposal;
+`exchange_log_id` резолвится в ExchangeLog того же proposal;
+`stop.iteration < max_iterations`.
+
 ## Классы enforcement
 
 | Класс | Значение |
