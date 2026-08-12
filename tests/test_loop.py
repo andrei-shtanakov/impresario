@@ -137,6 +137,7 @@ def loop_ws(tmp_path: Path) -> Path:
     init_loop(
         workspace,
         idea_file,
+        CONTRACTS_DIR,
         loop_id="LOOP-001",
         proposal_id="PP-001",
         exchange_log_id="XL-001",
@@ -248,6 +249,7 @@ def test_crash_resume_at_every_boundary(
     init_loop(
         control,
         control_idea,
+        CONTRACTS_DIR,
         loop_id="LOOP-001",
         proposal_id="PP-001",
         exchange_log_id="XL-001",
@@ -288,10 +290,18 @@ def test_needs_human_resume_path(loop_ws: Path) -> None:
 
     # failed budget: resume must widen the iteration budget
     with pytest.raises(LoopError, match="budget"):
-        resume_loop(loop_ws, max_iterations=2, actor="andrei", reason="r", now_iso=NOW)
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=2,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
 
     resume_loop(
         loop_ws,
+        CONTRACTS_DIR,
         max_iterations=3,
         actor="andrei",
         reason="owner decided the exempt semantics",
@@ -320,7 +330,14 @@ def test_resume_refuses_non_needs_human(loop_ws: Path) -> None:
 
     _run(loop_ws, HAPPY_SCRIPT)  # terminal: ready_for_business
     with pytest.raises(LoopError, match="needs_human"):
-        resume_loop(loop_ws, max_iterations=5, actor="andrei", reason="r", now_iso=NOW)
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=5,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
 
 
 def test_init_rejects_zero_iterations(tmp_path: Path) -> None:
@@ -335,12 +352,35 @@ def test_init_rejects_zero_iterations(tmp_path: Path) -> None:
         init_loop(
             tmp_path / "loop",
             idea_file,
+            CONTRACTS_DIR,
             loop_id="LOOP-001",
             proposal_id="PP-001",
             exchange_log_id="XL-001",
             max_iterations=0,
             now_iso=NOW,
         )
+
+
+def test_stop_record_is_contract_valid(loop_ws: Path) -> None:
+    from impresario.schemas import load_validators
+
+    _run(loop_ws, STUCK_SCRIPT)
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"]["iteration"] == 1
+    assert state["stop"]["at"] == NOW
+    validator = load_validators(CONTRACTS_DIR)["loop-state"]
+    assert list(validator.iter_errors(state)) == []
+
+
+def test_write_state_rejects_invalid_state(loop_ws: Path) -> None:
+    import impresario.loop as loop_mod
+    from impresario.schemas import load_validators
+
+    validator = load_validators(CONTRACTS_DIR)["loop-state"]
+    before = (loop_ws / "loop.state").read_text(encoding="utf-8")
+    with pytest.raises(loop_mod.LoopError, match="invalid loop-state"):
+        loop_mod._write_state(loop_ws, {"loop_id": "nope"}, validator)
+    assert (loop_ws / "loop.state").read_text(encoding="utf-8") == before
 
 
 def test_cli_bad_script_is_json_error(

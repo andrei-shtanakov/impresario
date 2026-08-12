@@ -121,6 +121,7 @@ def main(argv: list[str] | None = None) -> int:
     fc_init.add_argument("--proposal-id", required=True)
     fc_init.add_argument("--exchange-log-id", required=True)
     fc_init.add_argument("--max-iterations", type=int, default=3)
+    fc_init.add_argument("--contracts", type=Path, default=None)
 
     fc_run = fc_sub.add_parser(
         "run",
@@ -149,6 +150,7 @@ def main(argv: list[str] | None = None) -> int:
     fc_resume.add_argument("--max-iterations", type=int, required=True)
     fc_resume.add_argument("--actor", required=True)
     fc_resume.add_argument("--reason", required=True)
+    fc_resume.add_argument("--contracts", type=Path, default=None)
 
     gate = subparsers.add_parser(
         "gate", help="M4: typed QG-5 gates (readiness + immutable decisions)"
@@ -281,9 +283,11 @@ def _run_forconcept(args) -> int:
 
     now = datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
+        contracts_dir = args.contracts or find_contracts_dir(Path.cwd())
         if args.fc_command == "resume":
             resume_loop(
                 args.workspace,
+                contracts_dir,
                 max_iterations=args.max_iterations,
                 actor=args.actor,
                 reason=args.reason,
@@ -300,6 +304,7 @@ def _run_forconcept(args) -> int:
             init_loop(
                 args.workspace,
                 args.idea_file,
+                contracts_dir,
                 loop_id=args.loop_id,
                 proposal_id=args.proposal_id,
                 exchange_log_id=args.exchange_log_id,
@@ -308,7 +313,6 @@ def _run_forconcept(args) -> int:
             )
             print(json.dumps({"ok": True, "initialized": str(args.workspace)}))
             return 0
-        contracts_dir = args.contracts or find_contracts_dir(Path.cwd())
         result = run_loop(
             args.workspace,
             contracts_dir,

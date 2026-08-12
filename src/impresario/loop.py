@@ -20,6 +20,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from jsonschema import Draft202012Validator
+
 from . import workspace as ws
 from .agents import Agent, AgentError
 from .hashing import canonical_doc_hash
@@ -64,7 +66,16 @@ def _read_state(workspace: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _write_state(workspace: Path, state: dict[str, Any]) -> None:
+def _write_state(
+    workspace: Path, state: dict[str, Any], validator: Draft202012Validator
+) -> None:
+    """Refuse to persist a state that violates loop-state/v1 (fail-closed)."""
+    errors = sorted(validator.iter_errors(state), key=lambda e: list(e.path))
+    if errors:
+        raise LoopError(
+            f"{state_path(workspace)}: refusing to write invalid loop-state: "
+            + "; ".join(e.message for e in errors)
+        )
     ws.write_atomic(
         state_path(workspace), json.dumps(state, ensure_ascii=False, indent=2)
     )
@@ -97,6 +108,7 @@ def _trace(ctx: _Ctx, event: dict[str, Any]) -> None:
 def init_loop(
     workspace: Path,
     idea_file: Path,
+    contracts_dir: Path,
     *,
     loop_id: str,
     proposal_id: str,
@@ -104,7 +116,11 @@ def init_loop(
     max_iterations: int,
     now_iso: str,
 ) -> None:
-    """Create a loop workspace: pinned idea copy + draft proposal + state."""
+    """Create a loop workspace: pinned idea copy + draft proposal + state.
+
+    `contracts_dir` is resolved by the caller once (CLI: `--contracts` or
+    `find_contracts_dir(cwd)`).
+    """
     if max_iterations < 1:
         raise LoopError(f"max_iterations must be >= 1, got {max_iterations}")
     if state_path(workspace).exists():
@@ -126,6 +142,7 @@ def init_loop(
         "updated_at": now_iso,
     }
     ws.write_atomic(workspace / "proposal.yaml", ws.dump_yaml(proposal))
+    validator = load_validators(contracts_dir)["loop-state"]
     _write_state(
         workspace,
         {
@@ -137,11 +154,13 @@ def init_loop(
             "max_iterations": max_iterations,
             "stop": None,
         },
+        validator,
     )
 
 
 def resume_loop(
     workspace: Path,
+    contracts_dir: Path,
     *,
     max_iterations: int,
     actor: str,
@@ -185,7 +204,8 @@ def resume_loop(
     )
     state["max_iterations"] = max_iterations
     state["stop"] = None
-    _write_state(workspace, state)
+    validator = load_validators(contracts_dir)["loop-state"]
+    _write_state(workspace, state, validator)
 
 
 @dataclass
@@ -461,8 +481,13 @@ def run_loop(
         )
 
     def fail(iteration: int, reason: str) -> LoopResult:
-        state["stop"] = {"verdict": FAILED, "reason": reason}
-        _write_state(workspace, state)
+        state["stop"] = {
+            "verdict": FAILED,
+            "reason": reason,
+            "iteration": iteration,
+            "at": ctx.now,
+        }
+        _write_state(workspace, state, validators["loop-state"])
         _trace(
             ctx,
             {
@@ -567,8 +592,13 @@ def run_loop(
             return paused(iteration)
         if verdict == READY:
             proposal = _set_status(ctx, proposal, READY)
-            state["stop"] = {"verdict": READY, "reason": reason}
-            _write_state(workspace, state)
+            state["stop"] = {
+                "verdict": READY,
+                "reason": reason,
+                "iteration": iteration,
+                "at": ctx.now,
+            }
+            _write_state(workspace, state, validators["loop-state"])
             return LoopResult(
                 verdict=READY,
                 stop_reason=reason,
@@ -577,8 +607,13 @@ def run_loop(
                 report=ctx.report,
             )
         if verdict == NEEDS_HUMAN:
-            state["stop"] = {"verdict": NEEDS_HUMAN, "reason": reason}
-            _write_state(workspace, state)
+            state["stop"] = {
+                "verdict": NEEDS_HUMAN,
+                "reason": reason,
+                "iteration": iteration,
+                "at": ctx.now,
+            }
+            _write_state(workspace, state, validators["loop-state"])
             return LoopResult(
                 verdict=NEEDS_HUMAN,
                 stop_reason=reason,
