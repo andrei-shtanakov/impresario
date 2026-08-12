@@ -1,0 +1,42 @@
+id: RP-501
+idea_ref: idea://IDEA-101
+proposal_ref: proposal://PP-101
+iteration: 0
+questions:
+- Почему покрытие дайджестов неполно и какие механизмы это создают?
+findings:
+- claim: Список зеркал живёт в двух местах (config.py _ECOSYSTEM_REPOS и deploy/setup.sh REPOS);
+    их расхождение ловит тест, но совпадение списков не гарантирует совпадения с реальными
+    каталогами.
+  source_ref: robin-runtime/src/robin/config.py:26-46
+  confidence: high
+- claim: 'Непрорезолвившееся имя теряется молча: config.py фильтрует записи через .is_dir(),
+    и отчёт о пробелах покрытия работает уже внутри отфильтрованного списка.'
+  source_ref: 'robin-runtime/CLAUDE.md (Грабли: молчаливый фильтр)'
+  confidence: high
+- claim: 'Прецедент стоимости: после переименования maestro/libretto Robin был слеп к двум
+    активным репо (78 и 62 коммита/30д) на каждой машине с каноническими каталогами, и ни
+    одна раскладка об этом не сообщала.'
+  source_ref: robin-runtime/src/robin/config.py:18-25 (комментарий)
+  confidence: high
+constraints:
+- kind: standard
+  statement: 'STD-9: новый репо/переименование регистрируется в обзорных поверхностях тем
+    же изменением; «молча слеп» — дефект.'
+  source_ref: standards://ecosystem/STD-9
+gaps:
+- what: 'Согласованная exempt-семантика: какие зеркала законно не имеют плана (KB-репо) и
+    как это показывать в дайджесте — решение владельца robin-runtime.'
+  needed: Решение владельца по exempt-реестру и его отображению
+  blocks_approval: true
+brief_for_creator: 'Покрытие ломается двумя механизмами: рассинхрон списков (уже закрыт тестом)
+  и молчаливый is_dir-фильтр (открыт). Ценность инициативы доказана задокументированным инцидентом
+  maestro/libretto. Опираться можно на все три находки; открыт только вопрос exempt-семантики.'
+requests_to_creator:
+- 'Уточнить, что считается «полным покрытием»: состав зеркал или ещё и свежесть данных.'
+produced_by:
+  kind: agent
+  id: researcher
+  model: claude-fable-5
+  prompt_version: researcher/manual-v0
+produced_at: '2026-08-12T18:30:00Z'

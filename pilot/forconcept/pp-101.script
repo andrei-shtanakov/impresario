@@ -1,0 +1,200 @@
+# Скрипт агентов цикла forconcept для IDEA-101 (Robin full-coverage).
+# Формат — вход ScriptedAgent (см. src/impresario/agents.py); артефакты
+# авторства LLM (manual-v0), содержание — реальные факты экосистемы.
+# Файл намеренно с суффиксом .script: это вход раннера, не артефакт bundle.
+researcher:
+  0:
+    id: RP-501
+    idea_ref: idea://IDEA-101
+    proposal_ref: proposal://PP-101
+    iteration: 0
+    questions:
+      - "Почему покрытие дайджестов неполно и какие механизмы это создают?"
+    findings:
+      - claim: >-
+          Список зеркал живёт в двух местах (config.py _ECOSYSTEM_REPOS и
+          deploy/setup.sh REPOS); их расхождение ловит тест, но совпадение
+          списков не гарантирует совпадения с реальными каталогами.
+        source_ref: "robin-runtime/src/robin/config.py:26-46"
+        confidence: high
+      - claim: >-
+          Непрорезолвившееся имя теряется молча: config.py фильтрует записи
+          через .is_dir(), и отчёт о пробелах покрытия работает уже внутри
+          отфильтрованного списка.
+        source_ref: "robin-runtime/CLAUDE.md (Грабли: молчаливый фильтр)"
+        confidence: high
+      - claim: >-
+          Прецедент стоимости: после переименования maestro/libretto Robin
+          был слеп к двум активным репо (78 и 62 коммита/30д) на каждой
+          машине с каноническими каталогами, и ни одна раскладка об этом
+          не сообщала.
+        source_ref: "robin-runtime/src/robin/config.py:18-25 (комментарий)"
+        confidence: high
+    constraints:
+      - kind: standard
+        statement: >-
+          STD-9: новый репо/переименование регистрируется в обзорных
+          поверхностях тем же изменением; «молча слеп» — дефект.
+        source_ref: "standards://ecosystem/STD-9"
+    gaps:
+      - what: >-
+          Согласованная exempt-семантика: какие зеркала законно не имеют
+          плана (KB-репо) и как это показывать в дайджесте — решение
+          владельца robin-runtime.
+        needed: "Решение владельца по exempt-реестру и его отображению"
+        blocks_approval: true
+    brief_for_creator: >-
+      Покрытие ломается двумя механизмами: рассинхрон списков (уже закрыт
+      тестом) и молчаливый is_dir-фильтр (открыт). Ценность инициативы
+      доказана задокументированным инцидентом maestro/libretto. Опираться
+      можно на все три находки; открыт только вопрос exempt-семантики.
+    requests_to_creator:
+      - "Уточнить, что считается «полным покрытием»: состав зеркал или ещё и свежесть данных."
+    produced_by:
+      kind: agent
+      id: researcher
+      model: claude-fable-5
+      prompt_version: researcher/manual-v0
+    produced_at: 2026-08-12T18:30:00Z
+  1:
+    id: RP-502
+    idea_ref: idea://IDEA-101
+    proposal_ref: proposal://PP-101
+    iteration: 1
+    questions:
+      - "Есть ли уже план по молчаливому фильтру и exempt-механизм?"
+    findings:
+      - claim: >-
+          Пункт «перестать терять молча» уже заведён в планах robin-runtime —
+          инициатива достраивает существующее намерение владельца, а не
+          конкурирует с ним.
+        source_ref: "robin-runtime/CLAUDE.md (Грабли → ссылка на TODO.md)"
+        confidence: high
+      - claim: >-
+          Механизм exempt уже задуман: RobinConfig.plan_exempt описан именно
+          для KB-зеркал («a knowledge base is not a project with work»),
+          с семантикой «не ждём план, но не игнорируем имеющийся».
+        source_ref: "robin-runtime/src/robin/config.py:66-71"
+        confidence: high
+    constraints: []
+    gaps:
+      - what: >-
+          Согласованная exempt-семантика: какие зеркала законно не имеют
+          плана (KB-репо) и как это показывать в дайджесте — решение
+          владельца robin-runtime.
+        needed: "Решение владельца по exempt-реестру и его отображению"
+        blocks_approval: true
+    brief_for_creator: >-
+      Ответы на оба запроса: план у владельца уже есть (молчаливый фильтр),
+      механизм exempt задуман (plan_exempt). Пробел exempt-семантики
+      остаётся открытым честно: это authority-решение владельца, research
+      не может закрыть его за него.
+    requests_to_creator: []
+    produced_by:
+      kind: agent
+      id: researcher
+      model: claude-fable-5
+      prompt_version: researcher/manual-v0
+    produced_at: 2026-08-12T18:50:00Z
+creator:
+  0:
+    id: CD-501
+    idea_ref: idea://IDEA-101
+    proposal_ref: proposal://PP-101
+    iteration: 0
+    based_on_research:
+      ref: research-pack://RP-501
+      iteration: 0
+    value_prop: >-
+      Владелец экосистемы читает один дайджест и точно знает состав обзора:
+      какие репо покрыты, какие законно exempt и какие выпали — с причиной,
+      а не молча.
+    alternatives:
+      - direction: "Fail-loud + exempt-реестр"
+        summary: >-
+          Непрорезолвившееся имя из списка — ошибка дайджеста, а не тихое
+          сужение; законные исключения — явный реестр с причинами.
+      - direction: "Auto-discovery соседей vault"
+        summary: >-
+          Автоматически включать все каталоги-соседи; убирает список, но
+          рискует втянуть sandbox-репо и скрыть намеренные границы обзора.
+      - direction: "Отдельный coverage-report артефакт"
+        summary: >-
+          Не менять дайджест; публиковать рядом отчёт о покрытии. Дешевле,
+          но читатель дайджеста по-прежнему не видит пробелы в месте чтения.
+    chosen_direction:
+      direction: "Fail-loud + exempt-реестр"
+      why: >-
+        Единственный вариант, который чинит корневой механизм (молчаливый
+        фильтр), а не симптом; маленький дифф в robin-runtime.
+      tentative: true
+    business_models:
+      - "Внутренний инструмент: ценность = предотвращённые решения на слепых зонах обзора"
+    assumptions:
+      - text: >-
+          Владелец robin-runtime согласует exempt-семантику (KB-зеркала без
+          плана) и её отображение в дайджесте.
+        blocks_approval: true
+      - text: "Auto-discovery нежелателен: границы обзора должны оставаться явными."
+        blocks_approval: false
+    requests_to_researcher:
+      - "Проверить, есть ли уже пункт про молчаливый фильтр в планах robin-runtime."
+      - "Какие зеркала сегодня без плана и задуман ли для них exempt-механизм."
+    proposal_delta: "Концепция v0: fail-loud + exempt-реестр; полное покрытие = состав, свежесть — вне scope."
+    produced_by:
+      kind: agent
+      id: creator
+      model: claude-fable-5
+      prompt_version: creator/manual-v0
+    produced_at: 2026-08-12T18:40:00Z
+  1:
+    id: CD-502
+    idea_ref: idea://IDEA-101
+    proposal_ref: proposal://PP-101
+    iteration: 1
+    based_on_research:
+      ref: research-pack://RP-502
+      iteration: 1
+    value_prop: >-
+      Владелец экосистемы читает один дайджест и точно знает состав обзора:
+      какие репо покрыты, какие законно exempt и какие выпали — с причиной,
+      а не молча.
+    alternatives:
+      - direction: "Fail-loud + exempt-реестр"
+        summary: >-
+          Непрорезолвившееся имя — ошибка дайджеста; исключения — явный
+          реестр. Достраивает уже задуманный plan_exempt и пункт плана
+          владельца.
+      - direction: "Auto-discovery соседей vault"
+        summary: >-
+          Отклонено: границы обзора должны оставаться явными (втягивает
+          sandbox-репо).
+      - direction: "Отдельный coverage-report артефакт"
+        summary: >-
+          Отклонено: пробелы должны быть видны в месте чтения дайджеста.
+    chosen_direction:
+      direction: "Fail-loud + exempt-реестр"
+      why: >-
+        Подтверждено research: чинит корневой механизм и достраивает
+        существующие намерения владельца (plan_exempt + пункт плана),
+        а не вводит новую ось.
+    business_models:
+      - "Внутренний инструмент: ценность = предотвращённые решения на слепых зонах обзора"
+    assumptions:
+      - text: >-
+          Владелец robin-runtime согласует exempt-семантику (KB-зеркала без
+          плана) и её отображение в дайджесте.
+        blocks_approval: true
+      - text: "Auto-discovery нежелателен: границы обзора должны оставаться явными."
+        blocks_approval: false
+    requests_to_researcher: []
+    proposal_delta: >-
+      Концепция v1: направление зафиксировано (fail-loud + exempt-реестр),
+      альтернативы закрыты с причинами; открыт ровно один вопрос —
+      exempt-семантика — и он принадлежит владельцу robin-runtime.
+    produced_by:
+      kind: agent
+      id: creator
+      model: claude-fable-5
+      prompt_version: creator/manual-v0
+    produced_at: 2026-08-12T19:00:00Z

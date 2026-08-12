@@ -1,0 +1,43 @@
+id: CD-501
+idea_ref: idea://IDEA-101
+proposal_ref: proposal://PP-101
+iteration: 0
+based_on_research:
+  ref: research-pack://RP-501
+  iteration: 0
+value_prop: 'Владелец экосистемы читает один дайджест и точно знает состав обзора: какие репо
+  покрыты, какие законно exempt и какие выпали — с причиной, а не молча.'
+alternatives:
+- direction: Fail-loud + exempt-реестр
+  summary: Непрорезолвившееся имя из списка — ошибка дайджеста, а не тихое сужение; законные
+    исключения — явный реестр с причинами.
+- direction: Auto-discovery соседей vault
+  summary: Автоматически включать все каталоги-соседи; убирает список, но рискует втянуть
+    sandbox-репо и скрыть намеренные границы обзора.
+- direction: Отдельный coverage-report артефакт
+  summary: Не менять дайджест; публиковать рядом отчёт о покрытии. Дешевле, но читатель дайджеста
+    по-прежнему не видит пробелы в месте чтения.
+chosen_direction:
+  direction: Fail-loud + exempt-реестр
+  why: Единственный вариант, который чинит корневой механизм (молчаливый фильтр), а не симптом;
+    маленький дифф в robin-runtime.
+  tentative: true
+business_models:
+- 'Внутренний инструмент: ценность = предотвращённые решения на слепых зонах обзора'
+assumptions:
+- text: Владелец robin-runtime согласует exempt-семантику (KB-зеркала без плана) и её отображение
+    в дайджесте.
+  blocks_approval: true
+- text: 'Auto-discovery нежелателен: границы обзора должны оставаться явными.'
+  blocks_approval: false
+requests_to_researcher:
+- Проверить, есть ли уже пункт про молчаливый фильтр в планах robin-runtime.
+- Какие зеркала сегодня без плана и задуман ли для них exempt-механизм.
+proposal_delta: 'Концепция v0: fail-loud + exempt-реестр; полное покрытие = состав, свежесть
+  — вне scope.'
+produced_by:
+  kind: agent
+  id: creator
+  model: claude-fable-5
+  prompt_version: creator/manual-v0
+produced_at: '2026-08-12T18:40:00Z'

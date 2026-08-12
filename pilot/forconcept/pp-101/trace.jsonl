@@ -1,0 +1,9 @@
+{"event": "transition", "from": "draft", "proposal_version": 2, "to": "in_iteration"}
+{"artifact": "RP-501", "event": "artifact_written", "key": "LOOP-101:0:researcher", "kind": "research-pack", "output_hash": "sha256:ad96c2556f3ab70cfc7d38407b95909365f278daaf7375f8c455a1ff1312f45d"}
+{"artifact": "CD-501", "event": "artifact_written", "key": "LOOP-101:0:creator", "kind": "concept-draft", "output_hash": "sha256:8d82d60050ad9a8664ea443188f3092618c790c449ec1b376c79ec0a6882d6a2"}
+{"concept_draft": "CD-501", "event": "delta_applied", "iteration": 0, "proposal_version": 3}
+{"event": "verdict", "iteration": 0, "reason": "open: 2 critical(s), 2 request(s)", "verdict": "continue"}
+{"artifact": "RP-502", "event": "artifact_written", "key": "LOOP-101:1:researcher", "kind": "research-pack", "output_hash": "sha256:1ec4617f63a98b51b776f1719fcda411131a69c5e48ba61f6f76d2352d2d63df"}
+{"artifact": "CD-502", "event": "artifact_written", "key": "LOOP-101:1:creator", "kind": "concept-draft", "output_hash": "sha256:083187b15f5b1373e52fcab2d3be140079e8899d5b1c05aa70edc125cc3bb837"}
+{"concept_draft": "CD-502", "event": "delta_applied", "iteration": 1, "proposal_version": 4}
+{"event": "verdict", "iteration": 1, "reason": "max_iterations reached with open critical items: assumption: Владелец robin-runtime согласует exempt-семантику (KB-зеркала без плана) и её отображение в дайджесте.; gap: Согласованная exempt-семантика: какие зеркала законно не имеют плана (KB-репо) и как это показывать в дайджесте — решение владельца robin-runtime.", "verdict": "needs_human"}

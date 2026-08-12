@@ -28,8 +28,19 @@
 
 ## M2 — reference forconcept loop
 
-- [ ] Reference runner цикла researcher ↔ creator (bounded 2–3 итерации,
-  durable ExchangeLog, idempotency keys, crash/resume, golden traces)
+- [x] Reference runner цикла researcher ↔ creator: bounded итерации,
+  durable ExchangeLog, idempotency (артефакты = состояние), crash/resume
+  на каждой границе (побайтовое равенство с некрашившимся прогоном,
+  включая trace), fail-closed на невалидном артефакте, детерминированный
+  evaluator; `impresario forconcept init/run`
+- [x] Живой прогон LOOP-101 (IDEA-101): 2 итерации → **честный
+  `needs_human`** — открытый критичный вопрос (exempt-семантика зеркал)
+  принадлежит владельцу robin-runtime; PP-101 v4, история полностью
+  восстановима (`pilot/forconcept/pp-101/`)
+- [ ] **Human-развязка needs_human**: решение владельца robin-runtime по
+  exempt-семантике → human_waiver/answered_by → дорастить цикл до
+  `ready_for_business`
+- [ ] M2-хвост: промпт-харнесс оценщика/агентов (уйти от manual-v0)
 
 ## M3+ — интеграция экосистемы
 

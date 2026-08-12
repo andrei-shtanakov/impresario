@@ -107,6 +107,40 @@ def main(argv: list[str] | None = None) -> int:
     select.add_argument("--role", default=None)
     select.add_argument("--contracts", type=Path, default=None)
 
+    forconcept = subparsers.add_parser(
+        "forconcept", help="M2: reference runner of the researcher ↔ creator loop"
+    )
+    fc_sub = forconcept.add_subparsers(dest="fc_command", required=True)
+
+    fc_init = fc_sub.add_parser(
+        "init", help="create a loop workspace from a selected idea card"
+    )
+    fc_init.add_argument("workspace", type=Path)
+    fc_init.add_argument("--idea-file", type=Path, required=True)
+    fc_init.add_argument("--loop-id", required=True)
+    fc_init.add_argument("--proposal-id", required=True)
+    fc_init.add_argument("--exchange-log-id", required=True)
+    fc_init.add_argument("--max-iterations", type=int, default=3)
+
+    fc_run = fc_sub.add_parser(
+        "run",
+        help="run or resume the loop until a verdict",
+        description=(
+            "Idempotent: stage completion is derived from durable artifacts, "
+            "so re-invoking after a crash resumes without double-applying. "
+            "Terminal verdicts are recorded; re-running reports them."
+        ),
+    )
+    fc_run.add_argument("workspace", type=Path)
+    fc_run.add_argument("--script", type=Path, required=True)
+    fc_run.add_argument(
+        "--stop-after",
+        default=None,
+        help="pause boundary (start | research:N | concept:N | apply:N | "
+        "evaluate:N) — for crash/resume drills",
+    )
+    fc_run.add_argument("--contracts", type=Path, default=None)
+
     args = parser.parse_args(argv)
 
     if args.command == "hash":
@@ -114,6 +148,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "backlog":
         return _run_backlog(args)
+    if args.command == "forconcept":
+        return _run_forconcept(args)
 
     def usage_error(message: str) -> int:
         report = Report()
@@ -188,6 +224,51 @@ def _run_backlog(args) -> int:
         out[key] = payload
     print(json.dumps(out, ensure_ascii=False, indent=2))
     return report.exit_code
+
+
+def _run_forconcept(args) -> int:
+    """Dispatch `impresario forconcept init|run` with a JSON report."""
+    from datetime import UTC, datetime
+
+    from .agents import AgentError, ScriptedAgent
+    from .loop import FAILED, LoopError, init_loop, run_loop
+
+    now = datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:
+        if args.fc_command == "init":
+            init_loop(
+                args.workspace,
+                args.idea_file,
+                loop_id=args.loop_id,
+                proposal_id=args.proposal_id,
+                exchange_log_id=args.exchange_log_id,
+                max_iterations=args.max_iterations,
+                now_iso=now,
+            )
+            print(json.dumps({"ok": True, "initialized": str(args.workspace)}))
+            return 0
+        contracts_dir = args.contracts or find_contracts_dir(Path.cwd())
+        result = run_loop(
+            args.workspace,
+            contracts_dir,
+            ScriptedAgent.from_file(args.script),
+            now_iso=now,
+            stop_after=args.stop_after,
+        )
+    except (LoopError, AgentError, FileNotFoundError) as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
+        return EXIT_USAGE
+
+    out = {
+        "ok": result.verdict != FAILED,
+        "verdict": result.verdict,
+        "stop_reason": result.stop_reason,
+        "iteration": result.iteration,
+        "proposal_version": result.proposal_version,
+        "errors": [f.as_dict() for f in result.report.errors],
+    }
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+    return 0 if result.verdict != FAILED else 1
 
 
 def cli_entry() -> None:

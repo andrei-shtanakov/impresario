@@ -1,0 +1,39 @@
+id: CD-502
+idea_ref: idea://IDEA-101
+proposal_ref: proposal://PP-101
+iteration: 1
+based_on_research:
+  ref: research-pack://RP-502
+  iteration: 1
+value_prop: 'Владелец экосистемы читает один дайджест и точно знает состав обзора: какие репо
+  покрыты, какие законно exempt и какие выпали — с причиной, а не молча.'
+alternatives:
+- direction: Fail-loud + exempt-реестр
+  summary: Непрорезолвившееся имя — ошибка дайджеста; исключения — явный реестр. Достраивает
+    уже задуманный plan_exempt и пункт плана владельца.
+- direction: Auto-discovery соседей vault
+  summary: 'Отклонено: границы обзора должны оставаться явными (втягивает sandbox-репо).'
+- direction: Отдельный coverage-report артефакт
+  summary: 'Отклонено: пробелы должны быть видны в месте чтения дайджеста.'
+chosen_direction:
+  direction: Fail-loud + exempt-реестр
+  why: 'Подтверждено research: чинит корневой механизм и достраивает существующие намерения
+    владельца (plan_exempt + пункт плана), а не вводит новую ось.'
+business_models:
+- 'Внутренний инструмент: ценность = предотвращённые решения на слепых зонах обзора'
+assumptions:
+- text: Владелец robin-runtime согласует exempt-семантику (KB-зеркала без плана) и её отображение
+    в дайджесте.
+  blocks_approval: true
+- text: 'Auto-discovery нежелателен: границы обзора должны оставаться явными.'
+  blocks_approval: false
+requests_to_researcher: []
+proposal_delta: 'Концепция v1: направление зафиксировано (fail-loud + exempt-реестр), альтернативы
+  закрыты с причинами; открыт ровно один вопрос — exempt-семантика — и он принадлежит владельцу
+  robin-runtime.'
+produced_by:
+  kind: agent
+  id: creator
+  model: claude-fable-5
+  prompt_version: creator/manual-v0
+produced_at: '2026-08-12T19:00:00Z'
