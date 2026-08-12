@@ -1,6 +1,6 @@
 # Контракты product-governance v1
 
-Восемь версионированных контрактов product-governance (стадии отбора идеи и
+Версионированные контракты product-governance (стадии отбора идеи и
 форконцепта), fixtures и детерминированный валидатор (пакет
 [impresario](../src/impresario/)). Доменная семантика — самодостаточно в
 [docs/semantics.md](../docs/semantics.md).
@@ -16,6 +16,7 @@
 | [product-proposal/v1](./product-proposal/v1/schema.json) | ProductProposal (SSOT FSM) |
 | [gate-decision/v1](./gate-decision/v1/schema.json) | GateDecision |
 | [run-record/v1](./run-record/v1/schema.json) | RunRecord (immutable запись материализации бэклога) |
+| [loop-state/v1](./loop-state/v1/schema.json) | LoopState (текущий projection состояния цикла researcher ↔ creator; JSON-файл `loop.state`, сигнал `needs_human` — docs/semantics.md) |
 
 ## Канонические идентификаторы схем
 
@@ -38,9 +39,10 @@
 | ProductProposal | `PP-[0-9]{3,}` | `PP-001` |
 | GateDecision | `GD-[0-9]{3,}` | `GD-001` |
 | Evaluation run | `RUN-[0-9]{3,}` | `RUN-001` |
+| Loop | `LOOP-[0-9]{3,}` | `LOOP-101` |
 
-Внутренние ссылки — URI со схемой по типу объекта (восемь схем по числу
-контрактов): `idea://IDEA-001`, `assessment://ASMT-001`,
+Внутренние ссылки — URI со схемой по типу объекта; разрешимых ссылочных
+схем восемь: `idea://IDEA-001`, `assessment://ASMT-001`,
 `backlog://BL-portfolio`, `research-pack://RP-001`, `concept-draft://CD-001`,
 `exchange-log://XL-001`, `proposal://PP-001`, `gate-decision://GD-001`.
 
@@ -48,7 +50,8 @@
 (fail-closed: висячая ссылка известной схемы — ошибка). Прогон
 материализации записывается документом `run-record/v1`, но `run://` не
 является ссылочной схемой: `RUN-…` встречается только в полях
-`run_id` / `last_run_id` (обычный ID). Внешние evidence-ссылки
+`run_id` / `last_run_id` (обычный ID). `loop://` также не является ссылочной
+схемой — `loop_id` встречается только в `loop.state`. Внешние evidence-ссылки
 (`strategy://…`, `standards://…`, `https://…`, произвольные URI) в v1 не
 разрешаются и не считаются ошибкой.
 

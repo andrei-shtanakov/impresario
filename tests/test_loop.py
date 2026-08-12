@@ -137,6 +137,7 @@ def loop_ws(tmp_path: Path) -> Path:
     init_loop(
         workspace,
         idea_file,
+        CONTRACTS_DIR,
         loop_id="LOOP-001",
         proposal_id="PP-001",
         exchange_log_id="XL-001",
@@ -248,6 +249,7 @@ def test_crash_resume_at_every_boundary(
     init_loop(
         control,
         control_idea,
+        CONTRACTS_DIR,
         loop_id="LOOP-001",
         proposal_id="PP-001",
         exchange_log_id="XL-001",
@@ -288,10 +290,18 @@ def test_needs_human_resume_path(loop_ws: Path) -> None:
 
     # failed budget: resume must widen the iteration budget
     with pytest.raises(LoopError, match="budget"):
-        resume_loop(loop_ws, max_iterations=2, actor="andrei", reason="r", now_iso=NOW)
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=2,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
 
     resume_loop(
         loop_ws,
+        CONTRACTS_DIR,
         max_iterations=3,
         actor="andrei",
         reason="owner decided the exempt semantics",
@@ -315,12 +325,95 @@ def test_needs_human_resume_path(loop_ws: Path) -> None:
     assert report.ok, [f.message for f in report.errors]
 
 
+def test_resume_retry_after_partial_failure_is_idempotent(
+    loop_ws: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Retry после сбоя между evidence и replace не дублирует resumed.
+
+    Первая попытка пишет resumed и падает на записи state; ожидание
+    остаётся активным. Retry с ДРУГИМ now_iso обязан не создать второй
+    resumed (identity-dedup по iteration), сохранить at первой попытки
+    и довести replace до stop: null.
+    """
+    import impresario.loop as loop_mod
+    from impresario.loop import resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+
+    original = loop_mod._write_state
+    calls = {"n": 0}
+
+    def flaky(workspace, state, validator):  # noqa: ANN001, ANN202
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise OSError("simulated crash before atomic replace")
+        original(workspace, state, validator)
+
+    monkeypatch.setattr(loop_mod, "_write_state", flaky)
+    with pytest.raises(OSError):
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"]["verdict"] == "needs_human"  # ожидание активно
+
+    later = "2026-08-12T19:00:00Z"
+    resume_loop(
+        loop_ws,
+        CONTRACTS_DIR,
+        max_iterations=3,
+        actor="andrei",
+        reason="r",
+        now_iso=later,
+    )
+    resumed = [e for e in _trace_events(loop_ws) if e["event"] == "resumed"]
+    assert len(resumed) == 1
+    assert resumed[0]["at"] == NOW  # at первой попытки сохранён
+    assert resumed[0]["iteration"] == 1
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"] is None
+
+
+def test_resume_rejects_invalid_legacy_state(loop_ws: Path) -> None:
+    """A pre-contract loop.state (no stop.iteration) fails typed, not KeyError."""
+    from impresario.loop import LoopError, resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    path = loop_ws / "loop.state"
+    state = json.loads(path.read_text(encoding="utf-8"))
+    del state["stop"]["iteration"]  # legacy state written before loop-state/v1
+    path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+    with pytest.raises(LoopError, match="invalid loop-state"):
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
+
+
 def test_resume_refuses_non_needs_human(loop_ws: Path) -> None:
     from impresario.loop import LoopError, resume_loop
 
     _run(loop_ws, HAPPY_SCRIPT)  # terminal: ready_for_business
     with pytest.raises(LoopError, match="needs_human"):
-        resume_loop(loop_ws, max_iterations=5, actor="andrei", reason="r", now_iso=NOW)
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=5,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
 
 
 def test_init_rejects_zero_iterations(tmp_path: Path) -> None:
@@ -335,12 +428,132 @@ def test_init_rejects_zero_iterations(tmp_path: Path) -> None:
         init_loop(
             tmp_path / "loop",
             idea_file,
+            CONTRACTS_DIR,
             loop_id="LOOP-001",
             proposal_id="PP-001",
             exchange_log_id="XL-001",
             max_iterations=0,
             now_iso=NOW,
         )
+
+
+def test_stop_record_is_contract_valid(loop_ws: Path) -> None:
+    from impresario.schemas import load_validators
+
+    _run(loop_ws, STUCK_SCRIPT)
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"]["iteration"] == 1
+    assert state["stop"]["at"] == NOW
+    validator = load_validators(CONTRACTS_DIR)["loop-state"]
+    assert list(validator.iter_errors(state)) == []
+
+
+def test_write_state_rejects_invalid_state(loop_ws: Path) -> None:
+    import impresario.loop as loop_mod
+    from impresario.schemas import load_validators
+
+    validator = load_validators(CONTRACTS_DIR)["loop-state"]
+    before = (loop_ws / "loop.state").read_text(encoding="utf-8")
+    with pytest.raises(loop_mod.LoopError, match="invalid loop-state"):
+        loop_mod._write_state(loop_ws, {"loop_id": "nope"}, validator)
+    assert (loop_ws / "loop.state").read_text(encoding="utf-8") == before
+
+
+def _mutate_state(workspace: Path, **changes: Any) -> None:
+    path = workspace / "loop.state"
+    state = json.loads(path.read_text(encoding="utf-8"))
+    state.update(changes)
+    path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _bundle_codes(workspace: Path) -> set[str]:
+    report = validate_paths([workspace], CONTRACTS_DIR, bundle=True)
+    return {f.code for f in report.errors}
+
+
+def test_loop_state_included_in_bundle_validation(loop_ws: Path) -> None:
+    _run(loop_ws, STUCK_SCRIPT)
+    _mutate_state(loop_ws, loop_id="broken")  # schema violation
+    assert "SCHEMA" in _bundle_codes(loop_ws)
+
+
+def test_loop_state_foreign_proposal(loop_ws: Path) -> None:
+    _run(loop_ws, STUCK_SCRIPT)
+    _mutate_state(loop_ws, proposal_id="PP-999")
+    assert "LOOPSTATE_PROPOSAL" in _bundle_codes(loop_ws)
+
+
+def test_loop_state_idea_ref_mismatch(loop_ws: Path) -> None:
+    _run(loop_ws, STUCK_SCRIPT)
+    _mutate_state(loop_ws, idea_ref="idea://IDEA-999")
+    assert "LOOPSTATE_IDEA_REF" in _bundle_codes(loop_ws)
+
+
+def test_loop_state_stale_idea_hash(loop_ws: Path) -> None:
+    _run(loop_ws, STUCK_SCRIPT)
+    _mutate_state(loop_ws, idea_input_hash="sha256:" + "0" * 64)
+    assert "LOOPSTATE_IDEA_HASH" in _bundle_codes(loop_ws)
+
+
+def test_loop_state_dangling_exchange_log(loop_ws: Path) -> None:
+    _run(loop_ws, STUCK_SCRIPT)
+    _mutate_state(loop_ws, exchange_log_id="XL-999")
+    assert "LOOPSTATE_XLOG" in _bundle_codes(loop_ws)
+
+
+def test_loop_state_foreign_exchange_log(loop_ws: Path) -> None:
+    _run(loop_ws, STUCK_SCRIPT)
+    log_path = loop_ws / "exchange-log.yaml"
+    log = yaml.safe_load(log_path.read_text(encoding="utf-8"))
+    log["proposal_ref"] = "proposal://PP-999"
+    log_path.write_text(
+        yaml.safe_dump(log, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    assert "LOOPSTATE_XLOG" in _bundle_codes(loop_ws)
+
+
+def test_loop_state_ambiguous_exchange_log(loop_ws: Path) -> None:
+    """Two exchange-logs sharing an id must raise the ambiguity itself.
+
+    A foreign second match alone would already fail the ownership check
+    (proposal_ref != expected), so a bare `"LOOPSTATE_XLOG" in codes`
+    assertion would pass even without ambiguity handling. Assert on the
+    message instead, to pin the fix (reject >1 match up front) rather than
+    the ownership branch that happens to fire for unrelated reasons.
+    """
+    _run(loop_ws, STUCK_SCRIPT)
+    foreign_log = {
+        "id": "XL-001",  # same id as the real exchange-log.yaml
+        "proposal_ref": "proposal://PP-999",
+        "entries": [
+            {
+                "iteration": 0,
+                "actor": "researcher",
+                "artifact_kind": "research_pack",
+                "artifact_ref": "research-pack://RP-999",
+                "at": NOW,
+            }
+        ],
+    }
+    (loop_ws / "exchange-log-foreign.yaml").write_text(
+        yaml.safe_dump(foreign_log, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    report = validate_paths([loop_ws], CONTRACTS_DIR, bundle=True)
+    xlog_findings = [f for f in report.errors if f.code == "LOOPSTATE_XLOG"]
+    assert xlog_findings, "LOOPSTATE_XLOG must fire on ambiguous exchange-log id"
+    assert any("expected exactly 1" in f.message for f in xlog_findings)
+
+
+def test_loop_state_iteration_over_budget(loop_ws: Path) -> None:
+    _run(loop_ws, STUCK_SCRIPT)
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    state["stop"]["iteration"] = 5
+    (loop_ws / "loop.state").write_text(
+        json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    assert "LOOPSTATE_ITERATION" in _bundle_codes(loop_ws)
 
 
 def test_cli_bad_script_is_json_error(

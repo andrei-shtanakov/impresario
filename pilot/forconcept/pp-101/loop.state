@@ -7,6 +7,8 @@
   "max_iterations": 3,
   "stop": {
     "verdict": "ready_for_business",
-    "reason": "no open critical assumptions/gaps and no open requests"
+    "reason": "no open critical assumptions/gaps and no open requests",
+    "iteration": 2,
+    "at": "2026-08-12T04:01:21Z"
   }
 }

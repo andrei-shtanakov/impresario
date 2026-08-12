@@ -71,10 +71,14 @@
   handoff подан 2026-08-12: inbox dispatcher#129 (фаза 1 — contract-backed
   ожидания Gate A/B из статуса + активных решений); фаза 2 (`needs_human`)
   заблокирована пунктом ниже на нашей стороне
-- [ ] Законтрактовать сигнал `needs_human` для внешних наблюдателей: сегодня
-  он живёт в `loop.state` — внутреннем состоянии reference-раннера, а не в
-  контракте; вариантов два — контракт `loop-state/v1` или типизированное
-  emitted-событие; без этого фаза 2 dispatcher#129 невозможна
+- [x] **Сигнал `needs_human` законтрактован (loop-state/v1)**: `loop.state`
+  промоутирован в контракт (projection, не журнал; identity
+  `(loop_id, stop.iteration)`, freshness `stop.at`, terminal сохраняет
+  stop), write-path validate-then-atomic-replace, resume — CAS +
+  identity-dedup evidence, 5 кросс-чеков `LOOPSTATE_*`, бэкфилл pp-101 из
+  immutable evidence; семантика — docs/semantics.md «Состояние цикла».
+  Спека: docs/superpowers/specs/2026-08-12-loop-state-contract-design.md.
+  Follow-up: handoff dispatcher#129 фаза 2 (вендорить схему @ merge-commit)
 
 ## M3 — Kapelle battle-test
 

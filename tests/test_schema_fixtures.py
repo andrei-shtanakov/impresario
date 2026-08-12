@@ -13,7 +13,11 @@ from .conftest import CONTRACTS_DIR
 
 
 def _fixture_paths(polarity: str) -> list[Path]:
-    return sorted(CONTRACTS_DIR.glob(f"*/v1/fixtures/{polarity}/*.yaml"))
+    return sorted(
+        path
+        for suffix in ("yaml", "json")
+        for path in CONTRACTS_DIR.glob(f"*/v1/fixtures/{polarity}/*.{suffix}")
+    )
 
 
 def _fixture_id(path: Path) -> str:
@@ -39,9 +43,10 @@ def test_fixture_coverage() -> None:
     """Every contract ships at least one valid and one invalid fixture."""
     for contract_dir in sorted(CONTRACTS_DIR.glob("*/v1")):
         name = contract_dir.parent.name
-        assert list((contract_dir / "fixtures" / "valid").glob("*.yaml")), (
-            f"{name}: no valid fixtures"
-        )
-        assert list((contract_dir / "fixtures" / "invalid").glob("*.yaml")), (
-            f"{name}: no invalid fixtures"
-        )
+        for polarity in ("valid", "invalid"):
+            found = [
+                p
+                for suffix in ("yaml", "json")
+                for p in (contract_dir / "fixtures" / polarity).glob(f"*.{suffix}")
+            ]
+            assert found, f"{name}: no {polarity} fixtures"
