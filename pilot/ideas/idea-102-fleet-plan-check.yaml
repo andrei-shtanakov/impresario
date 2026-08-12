@@ -1,0 +1,19 @@
+id: IDEA-102
+title: "fleet-plan-check: сквозная проверка планов по флоту репо"
+date: 2026-08-12
+source:
+  kind: internal
+  ref: "devtools: триггер fleet-plan-check сработал (memory next-session-arch-followups, 2026-08-08)"
+priority: medium
+business_attractiveness: 3
+status: new
+type: new_product
+hypothesis: >-
+  Инструмент, валидирующий TODO/plan-файлы всех репо против единой
+  грамматики plan-fields, даст владельцу экосистемы машинную гарантию
+  «каждый репо имеет живой план с владельцами», заменив ручные обходы;
+  выгода — дрейф планов виден за минуты, а не при очередном аудите.
+essence: "Fleet-wide линтер plan-файлов поверх ADR-ECO-005 two-plane plan-fields."
+problem: "Соответствие планов грамматике проверяется вручную и эпизодически."
+open_questions:
+  - "Где живёт: devtools (dev-only) или отдельный публичный инструмент?"

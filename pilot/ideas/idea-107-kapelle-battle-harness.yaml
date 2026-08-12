@@ -1,0 +1,19 @@
+id: IDEA-107
+title: "Kapelle как переиспользуемый battle-test harness двухагентных циклов"
+date: 2026-08-12
+source:
+  kind: rd
+  ref: "kapelle battle-testing M1 закрыт 7/7 2026-08-06 (PR #6); forconcept-цикл — кандидат M2/M3"
+priority: medium
+business_attractiveness: 3
+status: new
+type: test_product
+hypothesis: >-
+  Обобщение kapelle-прогона (durable scheduling, crash/resume, двухосевой
+  вердикт product/harness) в переиспользуемый harness позволит гонять любой
+  двухагентный протокол экосистемы под fault injection; выгода — новые
+  контуры получают durability-доказательства до продакшена.
+essence: "Product/harness verdict + fault injection как сервис для агентных протоколов."
+problem: "Durability новых агентных циклов проверяется ad-hoc и не переносится между контурами."
+open_questions:
+  - "Граница: kapelle исполняет, но не владеет доменными схемами — где живут адаптеры?"

@@ -1,0 +1,19 @@
+id: IDEA-103
+title: "Провайдеро-независимый слой моделей на базе arbiter"
+date: 2026-08-12
+source:
+  kind: strategy
+  ref: "prograph-vault/authored/notes/ecosystem-roadmap.md §1.5 (owned model layer, de-urgentized)"
+priority: low
+business_attractiveness: 4
+status: new
+type: new_product
+hypothesis: >-
+  Слой provider-независимого роутинга моделей в arbiter (каталог +
+  route_task поверх routing-grade данных ATP) даст всем инструментам
+  экосистемы устойчивость к уходу любого hosted-каталога моделей;
+  выгода — смена провайдера без правок в потребителях.
+essence: "Каталожный слой arbiter как единственная точка знания о провайдерах моделей."
+problem: "Уход внешнего каталога (прецедент GitHub Models) требует ревизии потребителей."
+open_questions:
+  - "Насколько текущий arbiter-cli catalog loader покрывает требования?"

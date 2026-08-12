@@ -9,9 +9,9 @@
 
 ## M1 — Stage 4 pilot (next)
 
-- [ ] Входные артефакты: стратегия предприятия, реестр стандартов
-  (без них `fit_strategy`/`fit_standards` = unknown у всех идей)
-- [ ] 5–10 реальных Idea-карточек
+- [x] Входные артефакты: стратегия (`pilot/strategy.md`, G-1…G-5 +
+  C-1…C-3), реестр стандартов (`pilot/standards.md`, STD-1…STD-9)
+- [x] 8 реальных Idea-карточек (`pilot/ideas/`, валидны против idea/v1)
 - [ ] Детерминированный rank engine поверх нормализованных AxisAssessment
 - [ ] `impresario backlog rank --dry-run / --apply` (CAS: input_hash +
   expected version + монотонный version + immutable run record)
@@ -30,5 +30,5 @@
   contracts; см. kapelle battle-testing трек)
 - [ ] Входной контракт approved ProductProposal для steward/discovery
 - [ ] dispatcher/Robin: read-only `product_proposal/gate_waiting` observation
-- [ ] Зарегистрировать репо в списке зеркал Robin (урок: список слеп к
-  новым/переименованным репо молча)
+- [x] Зарегистрировать репо в списке зеркал Robin — robin-runtime PR #44
+  (после мержа: клонировать зеркало на VPS руками, CD этого не делает)

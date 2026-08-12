@@ -1,0 +1,19 @@
+id: IDEA-104
+title: "Dispatcher: read-only обзор ожидающих product-гейтов"
+date: 2026-08-12
+source:
+  kind: internal
+  ref: "impresario/docs/semantics.md + guide §10 (product_proposal/gate_waiting observation)"
+priority: medium
+business_attractiveness: 3
+status: new
+type: enhancement
+hypothesis: >-
+  Типизированное read-only событие product_proposal/gate_waiting в консоли
+  dispatcher покажет владельцу все ожидающие человеческого решения гейты
+  (QG-4, Gate A/B) в одном месте, не маскируя их под PR-review; выгода —
+  время ожидания authority-решений видно и управляемо.
+essence: "Отдельный entity_kind для product-гейтов в консоли: gate, authority, freshness, dedup."
+problem: "Ожидающие product-решения не видны ни в одной обзорной поверхности."
+open_questions:
+  - "Транспорт событий: файловый poll зеркала impresario или push?"
