@@ -99,7 +99,7 @@ def check_backlogs(docs: list[Doc]) -> list[Finding]:
     return findings
 
 
-def _parse_ts(value: Any) -> datetime:
+def parse_ts(value: Any) -> datetime:
     """Parse an RFC 3339 timestamp; naive/broken values sort first."""
     if isinstance(value, str):
         try:
@@ -117,7 +117,7 @@ def _decisions_for(docs: list[Doc], subject_ref: str) -> list[dict[str, Any]]:
             if doc.kind == "gate-decision"
             and doc.data.get("subject", {}).get("ref") == subject_ref
         ),
-        key=lambda d: _parse_ts(d.get("decided_at")),
+        key=lambda d: parse_ts(d.get("decided_at")),
     )
 
 
@@ -163,10 +163,10 @@ def _check_proposal_gates(doc: Doc, decisions: list[dict[str, Any]]) -> list[Fin
         if d.get("gate_id") == "qg5_business" and d.get("decision") == "approve"
     ]
     for d in active:
-        at = _parse_ts(d.get("decided_at"))
+        at = parse_ts(d.get("decided_at"))
         if d.get("gate_id") == "qg5_committee":
             prior = [
-                b for b in business_approves if _parse_ts(b.get("decided_at")) <= at
+                b for b in business_approves if parse_ts(b.get("decided_at")) <= at
             ]
             if not prior:
                 err(
@@ -180,7 +180,7 @@ def _check_proposal_gates(doc: Doc, decisions: list[dict[str, Any]]) -> list[Fin
                 for h in active
                 if h.get("gate_id") == d.get("gate_id")
                 and h.get("decision") == "hold"
-                and _parse_ts(h.get("decided_at")) < at
+                and parse_ts(h.get("decided_at")) < at
             ]
             if not prior_holds:
                 err(

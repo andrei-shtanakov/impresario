@@ -42,11 +42,21 @@
   `ready_for_business`
 - [ ] M2-хвост: промпт-харнесс оценщика/агентов (уйти от manual-v0)
 
-## M3+ — интеграция экосистемы
+## M4 — QG-5 и handoff
 
-- [ ] Kapelle как execution backend цикла (вендорит пинованные копии
-  contracts; см. kapelle battle-testing трек)
+- [x] Typed QG-5 (сторона impresario): `impresario gate readiness` +
+  `impresario gate decide` — Gate A/B, recycle/hold/kill/resume по таблице
+  FSM, readiness = вычисляемое предусловие (blocked → гейт не открывается,
+  ложное решение не создаётся), supersedes-цепочка, CAS + lock
+- [ ] **Прогон гейтов PP-101**: после human-развязки needs_human (exempt)
+  и выхода в `ready_for_business` — Gate A и Gate B решениями человека
 - [ ] Входной контракт approved ProductProposal для steward/discovery
 - [ ] dispatcher/Robin: read-only `product_proposal/gate_waiting` observation
+
+## M3 — Kapelle battle-test
+
+- [ ] Kapelle как execution backend цикла: вендорить пинованные копии
+  contracts + reference runner как oracle (см. kapelle battle-testing трек;
+  урок M2: различать terminal verdict и retryable-инфраструктуру)
 - [x] Зарегистрировать репо в списке зеркал Robin — robin-runtime PR #44
   (после мержа: клонировать зеркало на VPS руками, CD этого не делает)

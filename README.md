@@ -101,6 +101,28 @@ assumptions/gaps и запросов → `ready_for_business`; есть и ос�
 [pilot/forconcept/](./pilot/forconcept/pp-101/), скрипт —
 `pp-101.script`.
 
+## QG-5: typed гейты (Gate A / Gate B)
+
+Immutable human-решения поверх FSM; readiness — вычисляемое предусловие
+Gate B, никогда не персистится.
+
+```bash
+uv run impresario gate readiness <ws>          # ok | blocked + причины
+
+uv run impresario gate decide <ws> --gate qg5_business --decision approve \
+    --expected-version N --actor <id> --reason "<почему>"
+# recycle: + --return-to in_iteration --required-change "..." [повторяемо]
+# hold:    + [--review-after TS];  resume: + --return-to <state>
+# исправление решения: новая запись с --supersedes gate-decision://GD-xxx
+```
+
+Гарантии: CAS по `--expected-version`; легальность перехода по таблице FSM
+(`FSM_ILLEGAL`); Gate B approve открывается только при readiness = ok
+(`READINESS_BLOCKED` — гейт не открывается и ложное решение не создаётся);
+`resume` — только после активного `hold` того же гейта; перекрытые через
+`supersedes` решения не считаются evidence; весь read-check-write — под
+single-writer lock.
+
 ## Коды проверок
 
 | Код | Проверка |
