@@ -158,6 +158,13 @@ def init_loop(
     )
 
 
+def _read_trace(workspace: Path) -> list[dict[str, Any]]:
+    path = workspace / TRACE_FILE
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+
+
 def resume_loop(
     workspace: Path,
     contracts_dir: Path,
@@ -169,10 +176,14 @@ def resume_loop(
 ) -> None:
     """Reopen a needs_human loop after a human addressed the blocker.
 
-    Only needs_human is resumable — it is the verdict that explicitly waits
-    for a human; failed stays terminal (fail-closed). The resume is itself a
-    traced human act (actor + reason) and must widen the iteration budget,
-    otherwise the loop would stop on the same boundary again.
+    Protocol (docs/semantics.md, «Состояние цикла»): CAS precondition on
+    stop.verdict == needs_human; immutable resumed evidence first,
+    identity-deduped on (loop_id, iteration) so a retry after a partial
+    failure never duplicates it and keeps the first attempt's `at`; then
+    validate-then-atomic-replace of loop.state with stop: null and a
+    widened budget. A failure between the steps keeps the waiting active;
+    after a successful replace a repeated resume is rejected by the CAS
+    precondition (stop is null).
     """
     state = _read_state(workspace)
     stop = state.get("stop")
@@ -185,26 +196,34 @@ def resume_loop(
         raise LoopError(
             f"resume requires a larger iteration budget than {state['max_iterations']}"
         )
-    ctx = _Ctx(
-        workspace=workspace,
-        validators={},
-        state=state,
-        now=now_iso,
-        report=Report(),
+    validator = load_validators(contracts_dir)["loop-state"]
+    stop_iteration = int(stop["iteration"])
+    already_resumed = any(
+        e.get("event") == "resumed" and e.get("iteration") == stop_iteration
+        for e in _read_trace(workspace)
     )
-    _trace(
-        ctx,
-        {
-            "event": "resumed",
-            "by": actor,
-            "reason": reason,
-            "from_verdict": NEEDS_HUMAN,
-            "max_iterations": max_iterations,
-        },
-    )
+    if not already_resumed:
+        ctx = _Ctx(
+            workspace=workspace,
+            validators={},
+            state=state,
+            now=now_iso,
+            report=Report(),
+        )
+        _trace(
+            ctx,
+            {
+                "event": "resumed",
+                "by": actor,
+                "reason": reason,
+                "from_verdict": NEEDS_HUMAN,
+                "max_iterations": max_iterations,
+                "iteration": stop_iteration,
+                "at": now_iso,
+            },
+        )
     state["max_iterations"] = max_iterations
     state["stop"] = None
-    validator = load_validators(contracts_dir)["loop-state"]
     _write_state(workspace, state, validator)
 
 

@@ -325,6 +325,61 @@ def test_needs_human_resume_path(loop_ws: Path) -> None:
     assert report.ok, [f.message for f in report.errors]
 
 
+def test_resume_retry_after_partial_failure_is_idempotent(
+    loop_ws: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Retry после сбоя между evidence и replace не дублирует resumed.
+
+    Первая попытка пишет resumed и падает на записи state; ожидание
+    остаётся активным. Retry с ДРУГИМ now_iso обязан не создать второй
+    resumed (identity-dedup по iteration), сохранить at первой попытки
+    и довести replace до stop: null.
+    """
+    import impresario.loop as loop_mod
+    from impresario.loop import resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+
+    original = loop_mod._write_state
+    calls = {"n": 0}
+
+    def flaky(workspace, state, validator):  # noqa: ANN001, ANN202
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise OSError("simulated crash before atomic replace")
+        original(workspace, state, validator)
+
+    monkeypatch.setattr(loop_mod, "_write_state", flaky)
+    with pytest.raises(OSError):
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"]["verdict"] == "needs_human"  # ожидание активно
+
+    later = "2026-08-12T19:00:00Z"
+    resume_loop(
+        loop_ws,
+        CONTRACTS_DIR,
+        max_iterations=3,
+        actor="andrei",
+        reason="r",
+        now_iso=later,
+    )
+    resumed = [e for e in _trace_events(loop_ws) if e["event"] == "resumed"]
+    assert len(resumed) == 1
+    assert resumed[0]["at"] == NOW  # at первой попытки сохранён
+    assert resumed[0]["iteration"] == 1
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"] is None
+
+
 def test_resume_refuses_non_needs_human(loop_ws: Path) -> None:
     from impresario.loop import LoopError, resume_loop
 
