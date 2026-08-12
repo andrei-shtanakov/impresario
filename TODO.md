@@ -37,9 +37,11 @@
   `needs_human`** — открытый критичный вопрос (exempt-семантика зеркал)
   принадлежит владельцу robin-runtime; PP-101 v4, история полностью
   восстановима (`pilot/forconcept/pp-101/`)
-- [ ] **Human-развязка needs_human**: решение владельца robin-runtime по
-  exempt-семантике → human_waiver/answered_by → дорастить цикл до
-  `ready_for_business`
+- [x] **Human-развязка needs_human выполнена 2026-08-12**: решение владельца
+  robin-runtime (exempt = prograph-vault; 4-пунктный контракт семантики;
+  канонический `_PLAN_EXEMPT` в коде) → `forconcept resume` (типизированный,
+  traced) → итерация 3 (RP-503/CD-503, gap closed + answered_by) →
+  **PP-101 `ready_for_business` v6**
 - [ ] M2-хвост: промпт-харнесс оценщика/агентов (уйти от manual-v0)
 
 ## M4 — QG-5 и handoff
@@ -48,8 +50,10 @@
   `impresario gate decide` — Gate A/B, recycle/hold/kill/resume по таблице
   FSM, readiness = вычисляемое предусловие (blocked → гейт не открывается,
   ложное решение не создаётся), supersedes-цепочка, CAS + lock
-- [ ] **Прогон гейтов PP-101**: после human-развязки needs_human (exempt)
-  и выхода в `ready_for_business` — Gate A и Gate B решениями человека
+- [ ] **Прогон гейтов PP-101** (готов к запуску): Gate A → readiness →
+  Gate B решениями человека; после `approved` — стадия 6 = реализация
+  fail-loud + `_PLAN_EXEMPT` + постоянного раскрытия в robin-runtime
+  (по правилу FSM реализация НЕ начинается до `approved`)
 - [ ] Входной контракт approved ProductProposal для steward/discovery
 - [ ] dispatcher/Robin: read-only `product_proposal/gate_waiting` observation
 

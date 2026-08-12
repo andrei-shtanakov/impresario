@@ -96,6 +96,63 @@ researcher:
       model: claude-fable-5
       prompt_version: researcher/manual-v0
     produced_at: 2026-08-12T18:50:00Z
+  2:
+    id: RP-503
+    idea_ref: idea://IDEA-101
+    proposal_ref: proposal://PP-101
+    iteration: 2
+    questions:
+      - "Решение владельца по exempt-семантике получено — что оно меняет в scope?"
+    findings:
+      - claim: >-
+          Решение владельца robin-runtime (2026-08-12): exempt-репозиторий
+          ровно один — prograph-vault. Контракт семантики из четырёх пунктов:
+          exempt исключается из знаменателя покрытия; исключение ВСЕГДА явно
+          раскрывается в дайджесте (и при полном покрытии); exempt не
+          означает ignore — существующий план exempt-репо попадает в
+          дайджест; неизвестные/ошибочные имена exemption тоже показываются.
+        source_ref: "решение владельца robin-runtime, сессия 2026-08-12 (зафиксировано этим артефактом и PR)"
+        confidence: high
+      - claim: >-
+          Текущая реализация нарушает пункт «постоянное раскрытие»:
+          coverage_hit() возвращает None при полном покрытии обязательных
+          зеркал, и применённый exemption исчезает из дайджеста. Владелец
+          дал целевые строки отображения для обоих случаев (полное покрытие
+          и пропуски).
+        source_ref: "robin-runtime/src/robin/plan_state.py:216"
+        confidence: high
+      - claim: >-
+          Реестр исключений живёт только в deployment env (ROBIN_PLAN_EXEMPT;
+          на VPS = prograph-vault, в deploy/env.example пуст) — это
+          конфигурационный drift: две установки Robin трактуют
+          governance-покрытие по-разному. Решение владельца: канонический
+          _PLAN_EXEMPT в коде рядом с _ECOSYSTEM_REPOS; env-переменную
+          удалить либо заменить отдельной аддитивной с явным раскрытием.
+          Перенос в workspace-manifest.toml — преждевременен, пока Robin
+          наблюдает зеркала вне манифеста.
+        source_ref: "robin-runtime/src/robin/config.py:140; robin-runtime/TODO.md:40; deploy/env.example"
+        confidence: high
+    constraints: []
+    gaps:
+      - what: >-
+          Согласованная exempt-семантика: какие зеркала законно не имеют
+          плана (KB-репо) и как это показывать в дайджесте — решение
+          владельца robin-runtime.
+        needed: "Решение владельца по exempt-реестру и его отображению"
+        blocks_approval: true
+        closed: true
+    brief_for_creator: >-
+      Блокер снят решением владельца: состав (prograph-vault), контракт
+      семантики (4 пункта), место реестра (_PLAN_EXEMPT в коде) и целевые
+      строки дайджеста заданы. Scope инициативы пополнился найденным
+      дефектом раскрытия (coverage_hit при полном покрытии).
+    requests_to_creator: []
+    produced_by:
+      kind: agent
+      id: researcher
+      model: claude-fable-5
+      prompt_version: researcher/manual-v0
+    produced_at: 2026-08-12T21:00:00Z
 creator:
   0:
     id: CD-501
@@ -198,3 +255,54 @@ creator:
       model: claude-fable-5
       prompt_version: creator/manual-v0
     produced_at: 2026-08-12T19:00:00Z
+  2:
+    id: CD-503
+    idea_ref: idea://IDEA-101
+    proposal_ref: proposal://PP-101
+    iteration: 2
+    based_on_research:
+      ref: research-pack://RP-503
+      iteration: 2
+    value_prop: >-
+      Владелец экосистемы читает один дайджест и точно знает состав обзора:
+      какие репо покрыты, какие законно exempt (всегда явно раскрыто, даже
+      при полном покрытии) и какие выпали — с причиной, а не молча.
+    alternatives:
+      - direction: "Fail-loud + канонический exempt-реестр в коде"
+        summary: >-
+          Утверждено решением владельца: _PLAN_EXEMPT рядом с
+          _ECOSYSTEM_REPOS; ROBIN_PLAN_EXEMPT удалить или заменить
+          аддитивной переменной с явным раскрытием.
+      - direction: "Auto-discovery соседей vault"
+        summary: "Отклонено: границы обзора должны оставаться явными."
+      - direction: "Отдельный coverage-report артефакт"
+        summary: "Отклонено: пробелы должны быть видны в месте чтения."
+    chosen_direction:
+      direction: "Fail-loud + канонический exempt-реестр в коде"
+      why: >-
+        Решение владельца зафиксировано; scope конкретен и включает
+        найденный дефект раскрытия.
+    business_models:
+      - "Внутренний инструмент: ценность = предотвращённые решения на слепых зонах обзора"
+    assumptions:
+      - text: >-
+          Владелец robin-runtime согласует exempt-семантику (KB-зеркала без
+          плана) и её отображение в дайджесте.
+        blocks_approval: true
+        answered_by: research-pack://RP-503
+      - text: "Auto-discovery нежелателен: границы обзора должны оставаться явными."
+        blocks_approval: false
+    requests_to_researcher: []
+    proposal_delta: >-
+      Концепция v2 (финальная для гейтов): scope из трёх пунктов —
+      (1) fail-loud на непрорезолвившихся именах зеркал; (2) канонический
+      _PLAN_EXEMPT = ("prograph-vault",) в config.py, снятие env-drift;
+      (3) coverage_hit раскрывает применённые и неизвестные exemptions
+      всегда, включая полное покрытие, по целевым строкам владельца.
+      Сканирование планов не меняется (exempt ≠ ignore).
+    produced_by:
+      kind: agent
+      id: creator
+      model: claude-fable-5
+      prompt_version: creator/manual-v0
+    produced_at: 2026-08-12T21:10:00Z

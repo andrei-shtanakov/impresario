@@ -7,3 +7,10 @@
 {"artifact": "CD-502", "event": "artifact_written", "key": "LOOP-101:1:creator", "kind": "concept-draft", "output_hash": "sha256:083187b15f5b1373e52fcab2d3be140079e8899d5b1c05aa70edc125cc3bb837"}
 {"concept_draft": "CD-502", "event": "delta_applied", "iteration": 1, "proposal_version": 4}
 {"event": "verdict", "iteration": 1, "reason": "max_iterations reached with open critical items: assumption: Владелец robin-runtime согласует exempt-семантику (KB-зеркала без плана) и её отображение в дайджесте.; gap: Согласованная exempt-семантика: какие зеркала законно не имеют плана (KB-репо) и как это показывать в дайджесте — решение владельца robin-runtime.", "verdict": "needs_human"}
+{"by": "andrei", "event": "resumed", "from_verdict": "needs_human", "max_iterations": 3, "reason": "Решение владельца robin-runtime: exempt = prograph-vault; контракт семантики из 4 пунктов (включая постоянное раскрытие); канонический _PLAN_EXEMPT в коде вместо env"}
+{"event": "verdict", "iteration": 1, "reason": "open: 2 critical(s), 0 request(s)", "verdict": "continue"}
+{"artifact": "RP-503", "event": "artifact_written", "key": "LOOP-101:2:researcher", "kind": "research-pack", "output_hash": "sha256:0515715b2584591db2c83ea14af0c235ab48a86c2df049bf9f14ff59578b4b26"}
+{"artifact": "CD-503", "event": "artifact_written", "key": "LOOP-101:2:creator", "kind": "concept-draft", "output_hash": "sha256:b41375ac7d3d627134f933b15ffee47c1d4374e783e17f259eda8627330f462e"}
+{"concept_draft": "CD-503", "event": "delta_applied", "iteration": 2, "proposal_version": 5}
+{"event": "verdict", "iteration": 2, "reason": "no open critical assumptions/gaps and no open requests", "verdict": "ready_for_business"}
+{"event": "transition", "from": "in_iteration", "proposal_version": 6, "to": "ready_for_business"}

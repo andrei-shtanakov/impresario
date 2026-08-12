@@ -141,6 +141,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     fc_run.add_argument("--contracts", type=Path, default=None)
 
+    fc_resume = fc_sub.add_parser(
+        "resume",
+        help="reopen a needs_human loop after a human addressed the blocker",
+    )
+    fc_resume.add_argument("workspace", type=Path)
+    fc_resume.add_argument("--max-iterations", type=int, required=True)
+    fc_resume.add_argument("--actor", required=True)
+    fc_resume.add_argument("--reason", required=True)
+
     gate = subparsers.add_parser(
         "gate", help="M4: typed QG-5 gates (readiness + immutable decisions)"
     )
@@ -268,10 +277,25 @@ def _run_forconcept(args) -> int:
     from datetime import UTC, datetime
 
     from .agents import AgentError, ScriptedAgent
-    from .loop import FAILED, LoopError, init_loop, run_loop
+    from .loop import FAILED, LoopError, init_loop, resume_loop, run_loop
 
     now = datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
+        if args.fc_command == "resume":
+            resume_loop(
+                args.workspace,
+                max_iterations=args.max_iterations,
+                actor=args.actor,
+                reason=args.reason,
+                now_iso=now,
+            )
+            print(
+                json.dumps(
+                    {"ok": True, "resumed": str(args.workspace)},
+                    ensure_ascii=False,
+                )
+            )
+            return 0
         if args.fc_command == "init":
             init_loop(
                 args.workspace,

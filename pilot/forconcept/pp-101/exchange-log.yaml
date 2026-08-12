@@ -31,3 +31,18 @@ entries:
   artifact_kind: product_proposal_patch
   artifact_ref: proposal://PP-101
   at: '2026-08-12T02:08:53Z'
+- iteration: 2
+  actor: researcher
+  artifact_kind: research_pack
+  artifact_ref: research-pack://RP-503
+  at: '2026-08-12T04:01:21Z'
+- iteration: 2
+  actor: creator
+  artifact_kind: concept_draft
+  artifact_ref: concept-draft://CD-503
+  at: '2026-08-12T04:01:21Z'
+- iteration: 2
+  actor: orchestration
+  artifact_kind: product_proposal_patch
+  artifact_ref: proposal://PP-101
+  at: '2026-08-12T04:01:21Z'

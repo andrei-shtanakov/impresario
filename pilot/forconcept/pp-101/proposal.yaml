@@ -1,12 +1,12 @@
 proposal_id: PP-101
 idea_ref: idea://IDEA-101
-version: 4
-status: in_iteration
-iteration: 1
+version: 6
+status: ready_for_business
+iteration: 2
 refs:
   exchange_log: exchange-log://XL-101
-  latest_research_pack: research-pack://RP-502
-  latest_concept_draft: concept-draft://CD-502
+  latest_research_pack: research-pack://RP-503
+  latest_concept_draft: concept-draft://CD-503
 content:
   delta_log:
   - iteration: 0
@@ -18,5 +18,12 @@ content:
     delta: 'Концепция v1: направление зафиксировано (fail-loud + exempt-реестр), альтернативы
       закрыты с причинами; открыт ровно один вопрос — exempt-семантика — и он принадлежит
       владельцу robin-runtime.'
+  - iteration: 2
+    concept_draft: CD-503
+    delta: 'Концепция v2 (финальная для гейтов): scope из трёх пунктов — (1) fail-loud на
+      непрорезолвившихся именах зеркал; (2) канонический _PLAN_EXEMPT = ("prograph-vault",)
+      в config.py, снятие env-drift; (3) coverage_hit раскрывает применённые и неизвестные
+      exemptions всегда, включая полное покрытие, по целевым строкам владельца. Сканирование
+      планов не меняется (exempt ≠ ignore).'
 created_at: '2026-08-12T02:08:53Z'
-updated_at: '2026-08-12T02:08:53Z'
+updated_at: '2026-08-12T04:01:21Z'
