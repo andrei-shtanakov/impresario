@@ -31,6 +31,35 @@ uv run pytest
 
 Каталог контрактов ищется вверх от cwd; переопределяется `--contracts DIR`.
 
+## Stage 4: rank и typed QG-4
+
+Рабочая директория (workspace): `ideas/`, `assessments/`, `backlog.yaml`,
+`runs/`, `decisions/` (живой пример — [pilot/](./pilot/README.md)).
+
+```bash
+# канонический input_hash карточки — для авторства assessments
+uv run impresario hash pilot/ideas/*.yaml
+
+# детерминированный ранг: dry-run печатает предлагаемый бэклог, ничего не пишет
+uv run impresario backlog rank pilot --backlog-id BL-ecosystem
+
+# apply: CAS-материализация + immutable run record
+uv run impresario backlog rank pilot --backlog-id BL-ecosystem --apply \
+    --actor <id> [--expected-version N]   # N обязателен, если бэклог уже есть
+
+# typed QG-4: человек выбирает идею; пишется immutable GateDecision,
+# версия бэклога растёт, карточка получает status: selected
+uv run impresario backlog select pilot IDEA-101 \
+    --expected-version 1 --actor <id> --reason "<почему>"
+```
+
+Гарантии apply/select: schema всех входов; `input_hash` каждого assessment
+равен текущему хэшу карточки (`STALE_INPUT` иначе); `--expected-version`
+совпадает с текущей (`VERSION_CONFLICT` иначе); single-writer lock;
+validate-then-atomic-replace; монотонная версия; собственные выходы
+проходят те же контракты. Детерминизм (P-07) — у rank engine от
+нормализованных assessments; новый LLM-вызов = новый evaluation run.
+
 ## Режимы валидации
 
 - **Файлы** — schema-only: каждый документ против схемы своего контракта

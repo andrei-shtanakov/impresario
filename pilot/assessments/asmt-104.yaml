@@ -1,0 +1,25 @@
+assessment_id: ASMT-104
+idea_ref: idea://IDEA-104
+run_id: RUN-001
+input_hash: "sha256:c4fcf68949247b4aa42e894693a14459f5117b6d561089ae79d28c9180a6576d"
+policy_version: scoring/v1
+evidence_refs:
+  - "strategy://ecosystem/2026/G-4"
+  - "strategy://ecosystem/2026/G-5"
+  - "impresario/docs/semantics.md (гейты QG-4/QG-5 определены; живых ожидающих решений пока нет)"
+fit_strategy: 4
+fit_market: 2
+fit_standards: 4
+strategy_blocker: false
+standards_blocker: false
+rationale:
+  fit_strategy: "Соединяет G-4 и G-5: authority-решения становятся наблюдаемыми."
+  fit_market: "Преждевременно: product-гейты только определены контрактами, потока ожидающих решений ещё нет — наблюдать пока нечего (зависимость от M4)."
+  fit_standards: "Read-only поверхность соответствует границам dispatcher; отдельный entity_kind — по семантике."
+confidence: medium
+evaluator:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: prioritizer/manual-v0
+evaluated_at: 2026-08-12T16:00:00Z

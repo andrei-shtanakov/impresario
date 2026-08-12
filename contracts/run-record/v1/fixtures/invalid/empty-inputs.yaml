@@ -1,0 +1,12 @@
+# Инвариант: материализация без входов не существует
+run_id: RUN-004
+at: 2026-08-12T15:00:00Z
+mode: apply
+policy_version: scoring/v1
+weights:
+  fit_strategy: 0.3333
+  fit_market: 0.3333
+  fit_standards: 0.3334
+backlog_ref: backlog://BL-portfolio
+backlog_version_after: 1
+inputs: []

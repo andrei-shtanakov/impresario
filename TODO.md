@@ -12,12 +12,17 @@
 - [x] Входные артефакты: стратегия (`pilot/strategy.md`, G-1…G-5 +
   C-1…C-3), реестр стандартов (`pilot/standards.md`, STD-1…STD-9)
 - [x] 8 реальных Idea-карточек (`pilot/ideas/`, валидны против idea/v1)
-- [ ] Детерминированный rank engine поверх нормализованных AxisAssessment
-- [ ] `impresario backlog rank --dry-run / --apply` (CAS: input_hash +
-  expected version + монотонный version + immutable run record)
-- [ ] Typed QG-4: `impresario backlog select <backlog> <idea>
+- [x] Детерминированный rank engine поверх нормализованных AxisAssessment
+- [x] `impresario backlog rank` dry-run/`--apply` (CAS: input_hash +
+  expected version + монотонный version + immutable run record
+  `run-record/v1`)
+- [x] Typed QG-4: `impresario backlog select <workspace> <idea>
   --expected-version N --actor <id> --reason <text>`
-- [ ] Friction log пилота
+- [x] Оценочный прогон RUN-001 (8 assessments) + материализация RUN-002:
+  `pilot/backlog.yaml` v1 (7 ранжировано, 1 pending, 0 excluded)
+- [x] Friction log пилота (`pilot/friction-log.md`, 7 наблюдений)
+- [ ] **QG-4: человек выбирает идею** — `impresario backlog select pilot
+  IDEA-… --expected-version 1 --actor … --reason …` (агент не выбирает)
 
 ## M2 — reference forconcept loop
 

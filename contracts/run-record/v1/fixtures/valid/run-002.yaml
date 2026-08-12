@@ -1,0 +1,16 @@
+run_id: RUN-002
+at: 2026-08-12T15:00:00Z
+mode: apply
+policy_version: scoring/v1
+weights:
+  fit_strategy: 0.3333
+  fit_market: 0.3333
+  fit_standards: 0.3334
+backlog_ref: backlog://BL-portfolio
+backlog_version_before: 2
+backlog_version_after: 3
+inputs:
+  - idea_ref: idea://IDEA-001
+    input_hash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    assessment_ref: assessment://ASMT-001
+actor: andrei
