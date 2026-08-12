@@ -53,9 +53,11 @@
 - [x] **QG-5 ПРОЙДЕН 2026-08-12 (решения andrei)**: Gate A (GD-001,
   business_owner) → readiness ok → Gate B (GD-002, committee_chair) →
   **PP-101 `approved` v8** — первый approved ProductProposal, полный
-  evidence-след Idea → approved. **Стадия 6 разблокирована**: реализация
-  fail-loud + `_PLAN_EXEMPT` + постоянного раскрытия применённых и
-  неизвестных exemptions в дайджесте robin-runtime (scope в CD-503)
+  evidence-след Idea → approved. **Стадия 6 РЕАЛИЗОВАНА 2026-08-12**:
+  robin-runtime PR #45 — fail-loud на непрорезолвившихся именах,
+  канонический `_PLAN_EXEMPT` (пустой: уточнение владельца — exemption
+  vault отменён 2026-07-30, см. friction №16), постоянное раскрытие
+  exemptions включая полное покрытие
 - [ ] Входной контракт approved ProductProposal для steward/discovery
 - [ ] dispatcher/Robin: read-only `product_proposal/gate_waiting` observation
 
