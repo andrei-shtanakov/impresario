@@ -1,0 +1,42 @@
+id: CD-503
+idea_ref: idea://IDEA-101
+proposal_ref: proposal://PP-101
+iteration: 2
+based_on_research:
+  ref: research-pack://RP-503
+  iteration: 2
+value_prop: 'Владелец экосистемы читает один дайджест и точно знает состав обзора: какие репо
+  покрыты, какие законно exempt (всегда явно раскрыто, даже при полном покрытии) и какие выпали
+  — с причиной, а не молча.'
+alternatives:
+- direction: Fail-loud + канонический exempt-реестр в коде
+  summary: 'Утверждено решением владельца: _PLAN_EXEMPT рядом с _ECOSYSTEM_REPOS; ROBIN_PLAN_EXEMPT
+    удалить или заменить аддитивной переменной с явным раскрытием.'
+- direction: Auto-discovery соседей vault
+  summary: 'Отклонено: границы обзора должны оставаться явными.'
+- direction: Отдельный coverage-report артефакт
+  summary: 'Отклонено: пробелы должны быть видны в месте чтения.'
+chosen_direction:
+  direction: Fail-loud + канонический exempt-реестр в коде
+  why: Решение владельца зафиксировано; scope конкретен и включает найденный дефект раскрытия.
+business_models:
+- 'Внутренний инструмент: ценность = предотвращённые решения на слепых зонах обзора'
+assumptions:
+- text: Владелец robin-runtime согласует exempt-семантику (KB-зеркала без плана) и её отображение
+    в дайджесте.
+  blocks_approval: true
+  answered_by: research-pack://RP-503
+- text: 'Auto-discovery нежелателен: границы обзора должны оставаться явными.'
+  blocks_approval: false
+requests_to_researcher: []
+proposal_delta: 'Концепция v2 (финальная для гейтов): scope из трёх пунктов — (1) fail-loud
+  на непрорезолвившихся именах зеркал; (2) канонический _PLAN_EXEMPT = ("prograph-vault",)
+  в config.py, снятие env-drift; (3) coverage_hit раскрывает применённые и неизвестные exemptions
+  всегда, включая полное покрытие, по целевым строкам владельца. Сканирование планов не меняется
+  (exempt ≠ ignore).'
+produced_by:
+  kind: agent
+  id: creator
+  model: claude-fable-5
+  prompt_version: creator/manual-v0
+produced_at: '2026-08-12T21:10:00Z'

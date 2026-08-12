@@ -280,6 +280,49 @@ def test_missing_script_entry_fails(loop_ws: Path) -> None:
     assert "researcher" in result.stop_reason
 
 
+def test_needs_human_resume_path(loop_ws: Path) -> None:
+    from impresario.loop import LoopError, resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+
+    # failed budget: resume must widen the iteration budget
+    with pytest.raises(LoopError, match="budget"):
+        resume_loop(loop_ws, max_iterations=2, actor="andrei", reason="r", now_iso=NOW)
+
+    resume_loop(
+        loop_ws,
+        max_iterations=3,
+        actor="andrei",
+        reason="owner decided the exempt semantics",
+        now_iso=NOW,
+    )
+    unstuck = {
+        "researcher": {
+            **STUCK_SCRIPT["researcher"],
+            2: _rp(3, 2, gap_open=False),
+        },
+        "creator": {
+            **STUCK_SCRIPT["creator"],
+            2: _cd(3, 2, 3, assumption_open=False),
+        },
+    }
+    result = _run(loop_ws, unstuck)
+    assert result.verdict == "ready_for_business"
+    events = [e["event"] for e in _trace_events(loop_ws)]
+    assert "resumed" in events
+    report = validate_paths([loop_ws], CONTRACTS_DIR, bundle=True)
+    assert report.ok, [f.message for f in report.errors]
+
+
+def test_resume_refuses_non_needs_human(loop_ws: Path) -> None:
+    from impresario.loop import LoopError, resume_loop
+
+    _run(loop_ws, HAPPY_SCRIPT)  # terminal: ready_for_business
+    with pytest.raises(LoopError, match="needs_human"):
+        resume_loop(loop_ws, max_iterations=5, actor="andrei", reason="r", now_iso=NOW)
+
+
 def test_init_rejects_zero_iterations(tmp_path: Path) -> None:
     from impresario.loop import LoopError
 

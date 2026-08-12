@@ -140,6 +140,54 @@ def init_loop(
     )
 
 
+def resume_loop(
+    workspace: Path,
+    *,
+    max_iterations: int,
+    actor: str,
+    reason: str,
+    now_iso: str,
+) -> None:
+    """Reopen a needs_human loop after a human addressed the blocker.
+
+    Only needs_human is resumable — it is the verdict that explicitly waits
+    for a human; failed stays terminal (fail-closed). The resume is itself a
+    traced human act (actor + reason) and must widen the iteration budget,
+    otherwise the loop would stop on the same boundary again.
+    """
+    state = _read_state(workspace)
+    stop = state.get("stop")
+    if not stop or stop.get("verdict") != NEEDS_HUMAN:
+        raise LoopError(
+            "only a needs_human loop can be resumed; current stop: "
+            f"{stop and stop.get('verdict')}"
+        )
+    if max_iterations <= int(state["max_iterations"]):
+        raise LoopError(
+            f"resume requires a larger iteration budget than {state['max_iterations']}"
+        )
+    ctx = _Ctx(
+        workspace=workspace,
+        validators={},
+        state=state,
+        now=now_iso,
+        report=Report(),
+    )
+    _trace(
+        ctx,
+        {
+            "event": "resumed",
+            "by": actor,
+            "reason": reason,
+            "from_verdict": NEEDS_HUMAN,
+            "max_iterations": max_iterations,
+        },
+    )
+    state["max_iterations"] = max_iterations
+    state["stop"] = None
+    _write_state(workspace, state)
+
+
 @dataclass
 class _Ctx:
     workspace: Path
