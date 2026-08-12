@@ -63,7 +63,7 @@
   применённые и неизвестные exemptions всегда, включая полное покрытие
 - [x] Входной контракт approved ProductProposal для steward/discovery —
   **ЗАКРЫТ 2026-08-12**: inbox steward#64 (slug `product-proposal-intake`,
-  closed completed) → steward#65 merged `5c702b3` — вендоринг обеих схем @
+  closed as completed) → steward#65 merged `5c702b3` — вендоринг обеих схем @
   `a2672a8` (PIN, copy-integrity + drift-вахта), `steward proposal-intake`
   с evidence-проверкой, живой смоук на PP-101 admit/reject; у steward
   остаётся их приёмка drift-вахты (`impresario-contract-drift-acceptance`)
