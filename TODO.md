@@ -61,11 +61,12 @@
   канонический `_PLAN_EXEMPT` (пустой: уточнение владельца — exemption
   vault отменён 2026-07-30, см. friction №16); coverage_hit раскрывает
   применённые и неизвестные exemptions всегда, включая полное покрытие
-- [ ] Входной контракт approved ProductProposal для steward/discovery —
-  handoff подан 2026-08-12 по ADR-ECO-006: inbox steward#64 (принят под slug
-  `product-proposal-intake`), реализация steward#65 (вендоринг обеих схем @
-  `a2672a8` + `steward proposal-intake`, живой смоук на PP-101 admit/reject);
-  закрыть после мержа steward#65 владельцем
+- [x] Входной контракт approved ProductProposal для steward/discovery —
+  **ЗАКРЫТ 2026-08-12**: inbox steward#64 (slug `product-proposal-intake`,
+  closed completed) → steward#65 merged `5c702b3` — вендоринг обеих схем @
+  `a2672a8` (PIN, copy-integrity + drift-вахта), `steward proposal-intake`
+  с evidence-проверкой, живой смоук на PP-101 admit/reject; у steward
+  остаётся их приёмка drift-вахты (`impresario-contract-drift-acceptance`)
 - [ ] dispatcher/Robin: read-only `product_proposal/gate_waiting` observation —
   handoff подан 2026-08-12: inbox dispatcher#129 (фаза 1 — contract-backed
   ожидания Gate A/B из статуса + активных решений); фаза 2 (`needs_human`)
