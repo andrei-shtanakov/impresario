@@ -141,8 +141,45 @@ def main(argv: list[str] | None = None) -> int:
     )
     fc_run.add_argument("--contracts", type=Path, default=None)
 
+    gate = subparsers.add_parser(
+        "gate", help="M4: typed QG-5 gates (readiness + immutable decisions)"
+    )
+    gate_sub = gate.add_subparsers(dest="gate_command", required=True)
+
+    gate_ready = gate_sub.add_parser(
+        "readiness",
+        help="computed Gate B precondition (ok | blocked + reasons); never persisted",
+    )
+    gate_ready.add_argument("workspace", type=Path)
+
+    gate_decide = gate_sub.add_parser(
+        "decide", help="record an immutable human gate decision (FSM applies)"
+    )
+    gate_decide.add_argument("workspace", type=Path)
+    gate_decide.add_argument(
+        "--gate", required=True, choices=["qg5_business", "qg5_committee"]
+    )
+    gate_decide.add_argument(
+        "--decision",
+        required=True,
+        choices=["approve", "recycle", "hold", "kill", "resume"],
+    )
+    gate_decide.add_argument("--expected-version", type=int, required=True)
+    gate_decide.add_argument("--actor", required=True)
+    gate_decide.add_argument("--reason", required=True)
+    gate_decide.add_argument("--role", default=None)
+    gate_decide.add_argument("--return-to", default=None)
+    gate_decide.add_argument(
+        "--required-change", action="append", default=None, dest="required_changes"
+    )
+    gate_decide.add_argument("--review-after", default=None)
+    gate_decide.add_argument("--supersedes", default=None)
+    gate_decide.add_argument("--contracts", type=Path, default=None)
+
     args = parser.parse_args(argv)
 
+    if args.command == "gate":
+        return _run_gate(args)
     if args.command == "hash":
         print(json.dumps(cmd_hash(args.paths), ensure_ascii=False, indent=2))
         return 0
@@ -269,6 +306,49 @@ def _run_forconcept(args) -> int:
     }
     print(json.dumps(out, ensure_ascii=False, indent=2))
     return 0 if result.verdict != FAILED else 1
+
+
+def _run_gate(args) -> int:
+    """Dispatch `impresario gate readiness|decide` with a JSON report."""
+    from .gate import decide, readiness
+    from .workspace import WorkspaceError as WsError
+
+    if args.gate_command == "readiness":
+        ok, reasons = readiness(args.workspace)
+        print(
+            json.dumps(
+                {"readiness": "ok" if ok else "blocked", "reasons": reasons},
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+
+    try:
+        contracts_dir = args.contracts or find_contracts_dir(Path.cwd())
+        report, record = decide(
+            args.workspace,
+            contracts_dir,
+            gate_id=args.gate,
+            decision=args.decision,
+            expected_version=args.expected_version,
+            actor=args.actor,
+            reason=args.reason,
+            role=args.role,
+            return_to=args.return_to,
+            required_changes=args.required_changes,
+            review_after=args.review_after,
+            supersedes=args.supersedes,
+        )
+    except (WsError, FileNotFoundError) as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
+        return EXIT_USAGE
+
+    out = report.as_dict()
+    if record is not None:
+        out["decision"] = record
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+    return report.exit_code
 
 
 def cli_entry() -> None:
