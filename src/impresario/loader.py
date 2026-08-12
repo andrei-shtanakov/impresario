@@ -90,10 +90,7 @@ def parse_yaml_plain(text: str) -> Any:
 def load_doc(path: Path) -> Doc:
     """Load a single YAML/JSON artifact and detect its kind."""
     text = path.read_text(encoding="utf-8")
-    if path.suffix == ".json":
-        data = json.loads(text)
-    else:
-        data = parse_yaml_plain(text)
+    data = json.loads(text) if path.suffix == ".json" else parse_yaml_plain(text)
     if not isinstance(data, dict):
         raise UnknownContractError(f"{path}: document is not a mapping")
     return Doc(path=path, kind=detect_kind(data), data=data)
