@@ -1,0 +1,33 @@
+id: XL-101
+proposal_ref: proposal://PP-101
+entries:
+- iteration: 0
+  actor: researcher
+  artifact_kind: research_pack
+  artifact_ref: research-pack://RP-501
+  at: '2026-08-12T02:08:53Z'
+- iteration: 0
+  actor: creator
+  artifact_kind: concept_draft
+  artifact_ref: concept-draft://CD-501
+  at: '2026-08-12T02:08:53Z'
+- iteration: 0
+  actor: orchestration
+  artifact_kind: product_proposal_patch
+  artifact_ref: proposal://PP-101
+  at: '2026-08-12T02:08:53Z'
+- iteration: 1
+  actor: researcher
+  artifact_kind: research_pack
+  artifact_ref: research-pack://RP-502
+  at: '2026-08-12T02:08:53Z'
+- iteration: 1
+  actor: creator
+  artifact_kind: concept_draft
+  artifact_ref: concept-draft://CD-502
+  at: '2026-08-12T02:08:53Z'
+- iteration: 1
+  actor: orchestration
+  artifact_kind: product_proposal_patch
+  artifact_ref: proposal://PP-101
+  at: '2026-08-12T02:08:53Z'

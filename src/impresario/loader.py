@@ -82,13 +82,18 @@ def detect_kind(data: dict[str, Any]) -> str:
     )
 
 
+def parse_yaml_plain(text: str) -> Any:
+    """Parse YAML keeping dates/timestamps as strings (contract data model)."""
+    return yaml.load(text, Loader=_PlainDateLoader)  # noqa: S506 - SafeLoader
+
+
 def load_doc(path: Path) -> Doc:
     """Load a single YAML/JSON artifact and detect its kind."""
     text = path.read_text(encoding="utf-8")
     if path.suffix == ".json":
         data = json.loads(text)
     else:
-        data = yaml.load(text, Loader=_PlainDateLoader)
+        data = parse_yaml_plain(text)
     if not isinstance(data, dict):
         raise UnknownContractError(f"{path}: document is not a mapping")
     return Doc(path=path, kind=detect_kind(data), data=data)

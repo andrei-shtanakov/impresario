@@ -1,0 +1,32 @@
+id: RP-502
+idea_ref: idea://IDEA-101
+proposal_ref: proposal://PP-101
+iteration: 1
+questions:
+- Есть ли уже план по молчаливому фильтру и exempt-механизм?
+findings:
+- claim: Пункт «перестать терять молча» уже заведён в планах robin-runtime — инициатива достраивает
+    существующее намерение владельца, а не конкурирует с ним.
+  source_ref: robin-runtime/CLAUDE.md (Грабли → ссылка на TODO.md)
+  confidence: high
+- claim: 'Механизм exempt уже задуман: RobinConfig.plan_exempt описан именно для KB-зеркал
+    («a knowledge base is not a project with work»), с семантикой «не ждём план, но не игнорируем
+    имеющийся».'
+  source_ref: robin-runtime/src/robin/config.py:66-71
+  confidence: high
+constraints: []
+gaps:
+- what: 'Согласованная exempt-семантика: какие зеркала законно не имеют плана (KB-репо) и
+    как это показывать в дайджесте — решение владельца robin-runtime.'
+  needed: Решение владельца по exempt-реестру и его отображению
+  blocks_approval: true
+brief_for_creator: 'Ответы на оба запроса: план у владельца уже есть (молчаливый фильтр),
+  механизм exempt задуман (plan_exempt). Пробел exempt-семантики остаётся открытым честно:
+  это authority-решение владельца, research не может закрыть его за него.'
+requests_to_creator: []
+produced_by:
+  kind: agent
+  id: researcher
+  model: claude-fable-5
+  prompt_version: researcher/manual-v0
+produced_at: '2026-08-12T18:50:00Z'

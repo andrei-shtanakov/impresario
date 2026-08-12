@@ -73,6 +73,34 @@ evaluation run.
 - **Каталог (bundle)** — schema + кросс-объектные проверки по всем
   документам (`--bundle` форсирует для списка файлов).
 
+## Forconcept: reference runner цикла researcher ↔ creator
+
+Эталон семантики bounded-цикла (M2); oracle для будущих execution-бэкендов.
+Durable-артефакты — единственное состояние: завершённость стадии выводится
+из файлов на диске, поэтому crash/resume на любой границе не даёт ни
+дублей, ни потерь (проверено побайтовым сравнением с некрашившимся
+прогоном, включая trace).
+
+```bash
+uv run impresario forconcept init <ws> --idea-file <selected-idea.yaml> \
+    --loop-id LOOP-101 --proposal-id PP-101 --exchange-log-id XL-101 \
+    --max-iterations 2
+
+uv run impresario forconcept run <ws> --script <file>.script \
+    [--stop-after research:0|concept:0|apply:0|evaluate:0|...]
+```
+
+Стадии итерации: research → validate → concept → validate → apply delta →
+evaluate. Детерминированный evaluator: нет открытых критичных
+assumptions/gaps и запросов → `ready_for_business`; есть и остались
+итерации → `continue`; итерации кончились → `needs_human`; невалидный
+артефакт — не персистится, вердикт `failed` (fail-closed, exit 1).
+Вердикт терминален: повторный `run` — no-op с тем же ответом. Агенты —
+интерфейс; референс — `ScriptedAgent` (реплей законтрактованных
+артефактов, он же формат golden-фикстур). Живой пример —
+[pilot/forconcept/](./pilot/forconcept/pp-101/), скрипт —
+`pp-101.script`.
+
 ## Коды проверок
 
 | Код | Проверка |
