@@ -1,0 +1,16 @@
+proposal_id: PP-001
+idea_ref: idea://IDEA-001
+version: 5
+status: approved
+iteration: 1
+refs:
+  latest_research_pack: research-pack://RP-002
+  latest_concept_draft: concept-draft://CD-002
+  exchange_log: exchange-log://XL-001
+content:
+  research_summary: "Доля типовых запросов и готовность платить подтверждены."
+  concept: "Self-service портал; модель — в составе Premium."
+  economics_draft: "Себестоимость-гипотеза и бюджет запроса v1."
+  milestones: "Пилот на 10 клиентах верхнего квартиля → GA."
+created_at: 2026-08-11T08:00:00Z
+updated_at: 2026-08-12T12:00:00Z

@@ -1,0 +1,17 @@
+decision_id: GD-102
+gate_id: qg5_committee
+subject:
+  kind: product_proposal
+  ref: proposal://PP-001
+  version: 5
+decision: approve
+decided_by:
+  kind: human
+  id: product-committee
+  role: committee_chair
+decided_at: 2026-08-12T12:00:00Z
+reason: "Ценность и scope целостны; критичные допущения закрыты evidence; готов к стадии 6."
+artifacts_reviewed:
+  - proposal://PP-001
+  - concept-draft://CD-002
+  - gate-decision://GD-101

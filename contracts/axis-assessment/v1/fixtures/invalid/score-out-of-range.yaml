@@ -1,0 +1,19 @@
+# Инвариант: шкала оси 1…5 либо unknown; 0 и 6 невалидны
+assessment_id: ASMT-003
+idea_ref: idea://IDEA-001
+run_id: RUN-001
+input_hash: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+policy_version: scoring/v1
+evidence_refs: []
+fit_strategy: 6
+fit_market: 4
+fit_standards: 3
+strategy_blocker: false
+standards_blocker: false
+confidence: low
+evaluator:
+  kind: agent
+  id: prioritizer
+  model: vendor/model-x
+  prompt_version: prioritizer/v1
+evaluated_at: 2026-08-10T09:00:00Z

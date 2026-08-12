@@ -1,0 +1,34 @@
+id: CD-002
+idea_ref: idea://IDEA-001
+proposal_ref: proposal://PP-001
+iteration: 1
+based_on_research:
+  ref: research-pack://RP-002
+  iteration: 1
+value_prop: >-
+  Верхний квартиль SMB получает приоритетную self-service диагностику в
+  Premium; 4-я линия занимается только нетиповыми случаями.
+alternatives:
+  - direction: "Self-service портал"
+    summary: "Полный портал диагностики с базой знаний."
+  - direction: "Чат-бот поверх существующего HD"
+    summary: "Меньше scope, но не снимает нагрузку целиком."
+  - direction: "API для партнёрских интеграций"
+    summary: "Закрывает только интеграционные сценарии."
+chosen_direction:
+  direction: "Self-service портал"
+  why: "Подтверждённый спрос верхнего квартиля + полное покрытие типовых запросов."
+business_models:
+  - "Включено в тариф Premium"
+assumptions:
+  - text: "SMB готов платить за приоритетный self-service."
+    blocks_approval: true
+    answered_by: research-pack://RP-002
+requests_to_researcher: []
+proposal_delta: "Зафиксирована модель Premium; критичное допущение закрыто RP-002."
+produced_by:
+  kind: agent
+  id: creator
+  model: vendor/model-x
+  prompt_version: creator/v1
+produced_at: 2026-08-12T10:00:00Z

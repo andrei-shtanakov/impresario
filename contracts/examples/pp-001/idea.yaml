@@ -1,0 +1,15 @@
+id: IDEA-001
+title: "Портал самообслуживания для 4-й линии HD"
+date: 2026-08-01
+source:
+  kind: hd
+  ref: "HD-4L-2026-Q2-report"
+priority: high
+business_attractiveness: 4
+status: selected
+owner: "product-office"
+type: new_product
+hypothesis: >-
+  Портал самообслуживания снизит нагрузку 4-й линии HD на 30%,
+  дав клиентам сегмента SMB прямой доступ к диагностике за счёт
+  автоматизации типовых запросов.

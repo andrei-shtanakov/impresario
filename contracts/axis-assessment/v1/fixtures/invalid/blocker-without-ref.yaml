@@ -1,0 +1,19 @@
+# Инвариант: blocker без evidence-ссылки недопустим
+assessment_id: ASMT-002
+idea_ref: idea://IDEA-001
+run_id: RUN-001
+input_hash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+policy_version: scoring/v1
+evidence_refs: []
+fit_strategy: 1
+fit_market: 4
+fit_standards: 3
+strategy_blocker: true
+standards_blocker: false
+confidence: high
+evaluator:
+  kind: agent
+  id: prioritizer
+  model: vendor/model-x
+  prompt_version: prioritizer/v1
+evaluated_at: 2026-08-10T09:00:00Z

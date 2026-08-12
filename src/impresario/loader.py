@@ -1,0 +1,106 @@
+"""Loading artifacts and detecting their contract kind."""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+CONTRACT_KINDS: tuple[str, ...] = (
+    "idea",
+    "axis-assessment",
+    "ranked-backlog",
+    "research-pack",
+    "concept-draft",
+    "exchange-log",
+    "product-proposal",
+    "gate-decision",
+)
+
+_ID_PREFIX_TO_KIND: dict[str, str] = {
+    "IDEA": "idea",
+    "BL": "ranked-backlog",
+    "RP": "research-pack",
+    "CD": "concept-draft",
+    "XL": "exchange-log",
+}
+
+_DOC_SUFFIXES = {".yaml", ".yml", ".json"}
+
+
+class UnknownContractError(ValueError):
+    """Raised when a document cannot be mapped to a known contract."""
+
+
+@dataclass(frozen=True)
+class Doc:
+    """A loaded artifact with its detected contract kind."""
+
+    path: Path
+    kind: str
+    data: dict[str, Any]
+
+
+class _PlainDateLoader(yaml.SafeLoader):
+    """SafeLoader that keeps dates and timestamps as plain strings.
+
+    Derived from yaml.SafeLoader, so arbitrary Python object construction
+    stays disabled; the only override is timestamp resolution. JSON Schema
+    works on the JSON data model, where dates are strings; PyYAML's
+    implicit timestamp resolution would break pattern checks.
+    """
+
+
+_PlainDateLoader.add_constructor(
+    "tag:yaml.org,2002:timestamp",
+    lambda loader, node: loader.construct_scalar(node),
+)
+
+
+def detect_kind(data: dict[str, Any]) -> str:
+    """Detect the contract kind of a document from its identifying fields."""
+    if "assessment_id" in data:
+        return "axis-assessment"
+    if "proposal_id" in data:
+        return "product-proposal"
+    if "decision_id" in data:
+        return "gate-decision"
+    raw_id = data.get("id")
+    if isinstance(raw_id, str) and "-" in raw_id:
+        kind = _ID_PREFIX_TO_KIND.get(raw_id.split("-", 1)[0])
+        if kind is not None:
+            return kind
+    raise UnknownContractError(
+        "cannot detect contract kind: no assessment_id/proposal_id/decision_id "
+        "and no recognizable id prefix"
+    )
+
+
+def load_doc(path: Path) -> Doc:
+    """Load a single YAML/JSON artifact and detect its kind."""
+    text = path.read_text(encoding="utf-8")
+    if path.suffix == ".json":
+        data = json.loads(text)
+    else:
+        data = yaml.load(text, Loader=_PlainDateLoader)
+    if not isinstance(data, dict):
+        raise UnknownContractError(f"{path}: document is not a mapping")
+    return Doc(path=path, kind=detect_kind(data), data=data)
+
+
+def collect_doc_paths(paths: list[Path]) -> list[Path]:
+    """Expand files and directories into a sorted list of document paths."""
+    found: list[Path] = []
+    for path in paths:
+        if path.is_dir():
+            found.extend(
+                child
+                for child in sorted(path.rglob("*"))
+                if child.is_file() and child.suffix in _DOC_SUFFIXES
+            )
+        else:
+            found.append(path)
+    return found
