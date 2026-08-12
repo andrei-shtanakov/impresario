@@ -54,8 +54,8 @@
   business_owner) → readiness ok → Gate B (GD-002, committee_chair) →
   **PP-101 `approved` v8** — первый approved ProductProposal, полный
   evidence-след Idea → approved. **Стадия 6 разблокирована**: реализация
-  fail-loud + `_PLAN_EXEMPT` + постоянного раскрытия в robin-runtime
-  (scope зафиксирован в CD-503)
+  fail-loud + `_PLAN_EXEMPT` + постоянного раскрытия применённых и
+  неизвестных exemptions в дайджесте robin-runtime (scope в CD-503)
 - [ ] Входной контракт approved ProductProposal для steward/discovery
 - [ ] dispatcher/Robin: read-only `product_proposal/gate_waiting` observation
 
