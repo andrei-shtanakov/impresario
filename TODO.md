@@ -38,10 +38,13 @@
   принадлежит владельцу robin-runtime; PP-101 v4, история полностью
   восстановима (`pilot/forconcept/pp-101/`)
 - [x] **Human-развязка needs_human выполнена 2026-08-12**: решение владельца
-  robin-runtime (exempt = prograph-vault; 4-пунктный контракт семантики;
-  канонический `_PLAN_EXEMPT` в коде) → `forconcept resume` (типизированный,
-  traced) → итерация 3 (RP-503/CD-503, gap closed + answered_by) →
-  **PP-101 `ready_for_business` v6**
+  robin-runtime (первоначально «exempt = prograph-vault»; 4-пунктный
+  контракт семантики; канонический `_PLAN_EXEMPT` в коде) → `forconcept
+  resume` (типизированный, traced) → итерация 3 (RP-503/CD-503, gap
+  closed + answered_by) → **PP-101 `ready_for_business` v6**.
+  Exempt-часть решения позже скорректирована на стадии 6 — реестр пуст,
+  запись 07-26 была отменена 07-30 (см. friction №16); контракт
+  семантики и место реестра не менялись
 - [ ] M2-хвост: промпт-харнесс оценщика/агентов (уйти от manual-v0)
 
 ## M4 — QG-5 и handoff
@@ -56,8 +59,8 @@
   evidence-след Idea → approved. **Стадия 6 РЕАЛИЗОВАНА 2026-08-12**:
   robin-runtime PR #45 — fail-loud на непрорезолвившихся именах,
   канонический `_PLAN_EXEMPT` (пустой: уточнение владельца — exemption
-  vault отменён 2026-07-30, см. friction №16), постоянное раскрытие
-  exemptions включая полное покрытие
+  vault отменён 2026-07-30, см. friction №16); coverage_hit раскрывает
+  применённые и неизвестные exemptions всегда, включая полное покрытие
 - [ ] Входной контракт approved ProductProposal для steward/discovery
 - [ ] dispatcher/Robin: read-only `product_proposal/gate_waiting` observation
 
