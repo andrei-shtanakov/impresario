@@ -201,6 +201,7 @@ def test_terminal_verdict_rerun_is_noop(loop_ws: Path) -> None:
     before = sorted(
         (p.name, p.read_text(encoding="utf-8")) for p in loop_ws.glob("*.yaml")
     )
+    trace_before = _trace_events(loop_ws)
     second = _run(loop_ws, HAPPY_SCRIPT)
     assert (second.verdict, second.stop_reason) == (
         first.verdict,
@@ -210,7 +211,7 @@ def test_terminal_verdict_rerun_is_noop(loop_ws: Path) -> None:
         (p.name, p.read_text(encoding="utf-8")) for p in loop_ws.glob("*.yaml")
     )
     assert after == before
-    assert _trace_events(loop_ws) == _trace_events(loop_ws)
+    assert _trace_events(loop_ws) == trace_before
 
 
 @pytest.mark.parametrize(
@@ -224,6 +225,9 @@ def test_terminal_verdict_rerun_is_noop(loop_ws: Path) -> None:
         "research:1",
         "concept:1",
         "apply:1",
+        # terminal-iteration evaluate: crash between the verdict trace and
+        # the status/state writes
+        "evaluate:1",
     ],
 )
 def test_crash_resume_at_every_boundary(
@@ -274,3 +278,47 @@ def test_missing_script_entry_fails(loop_ws: Path) -> None:
     assert result.verdict == "failed"
     assert result.stop_reason is not None
     assert "researcher" in result.stop_reason
+
+
+def test_init_rejects_zero_iterations(tmp_path: Path) -> None:
+    from impresario.loop import LoopError
+
+    idea_file = tmp_path / "idea.yaml"
+    idea_file.write_text(
+        yaml.safe_dump(_idea(), allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    with pytest.raises(LoopError, match="max_iterations"):
+        init_loop(
+            tmp_path / "loop",
+            idea_file,
+            loop_id="LOOP-001",
+            proposal_id="PP-001",
+            exchange_log_id="XL-001",
+            max_iterations=0,
+            now_iso=NOW,
+        )
+
+
+def test_cli_bad_script_is_json_error(
+    loop_ws: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from impresario.cli import main
+
+    bad_script = tmp_path / "bad.script"
+    bad_script.write_text("- just\n- a list\n", encoding="utf-8")
+    code = main(
+        [
+            "forconcept",
+            "run",
+            str(loop_ws),
+            "--script",
+            str(bad_script),
+            "--contracts",
+            str(CONTRACTS_DIR),
+        ]
+    )
+    out = json.loads(capsys.readouterr().out)
+    assert code == 2
+    assert out["ok"] is False
+    assert "script" in out["error"]

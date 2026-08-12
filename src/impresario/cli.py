@@ -230,7 +230,7 @@ def _run_forconcept(args) -> int:
     """Dispatch `impresario forconcept init|run` with a JSON report."""
     from datetime import UTC, datetime
 
-    from .agents import ScriptedAgent
+    from .agents import AgentError, ScriptedAgent
     from .loop import FAILED, LoopError, init_loop, run_loop
 
     now = datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -255,8 +255,8 @@ def _run_forconcept(args) -> int:
             now_iso=now,
             stop_after=args.stop_after,
         )
-    except (LoopError, FileNotFoundError) as exc:
-        print(json.dumps({"ok": False, "error": str(exc)}))
+    except (LoopError, AgentError, FileNotFoundError) as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
         return EXIT_USAGE
 
     out = {

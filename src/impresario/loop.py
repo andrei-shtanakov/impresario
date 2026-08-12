@@ -70,19 +70,28 @@ def _write_state(workspace: Path, state: dict[str, Any]) -> None:
     )
 
 
-def _trace(workspace: Path, event: dict[str, Any]) -> None:
+def _trace(ctx: _Ctx, event: dict[str, Any]) -> None:
     """Append a trace event; identical events are recorded once.
 
     Events are deterministic (fixed now, deterministic agents), so a resumed
     run re-deriving a step emits a byte-identical line — deduplication makes
     the trace itself idempotent and golden-comparable across crash/resume.
+    Seen lines are cached on the context, so dedup is O(1) per event after
+    one initial read.
     """
     line = json.dumps(event, ensure_ascii=False, sort_keys=True)
-    path = workspace / TRACE_FILE
-    if path.exists() and line in path.read_text(encoding="utf-8").splitlines():
+    path = ctx.workspace / TRACE_FILE
+    if ctx.trace_seen is None:
+        ctx.trace_seen = (
+            set(path.read_text(encoding="utf-8").splitlines())
+            if path.exists()
+            else set()
+        )
+    if line in ctx.trace_seen:
         return
     with path.open("a", encoding="utf-8") as fh:
         fh.write(line + "\n")
+    ctx.trace_seen.add(line)
 
 
 def init_loop(
@@ -96,6 +105,8 @@ def init_loop(
     now_iso: str,
 ) -> None:
     """Create a loop workspace: pinned idea copy + draft proposal + state."""
+    if max_iterations < 1:
+        raise LoopError(f"max_iterations must be >= 1, got {max_iterations}")
     if state_path(workspace).exists():
         raise LoopError(f"{workspace}: already initialized")
     idea = load_doc(idea_file)
@@ -136,6 +147,7 @@ class _Ctx:
     state: dict[str, Any]
     now: str
     report: Report
+    trace_seen: set[str] | None = None
 
     @property
     def key_prefix(self) -> str:
@@ -219,7 +231,7 @@ def _persist_artifact(
     if findings:
         ctx.report.errors.extend(findings)
         _trace(
-            ctx.workspace,
+            ctx,
             {
                 "event": "artifact_rejected",
                 "key": ctx.key(iteration, role),
@@ -232,7 +244,7 @@ def _persist_artifact(
     path = ctx.workspace / f"{str(artifact_id).lower()}.yaml"
     ws.write_atomic(path, ws.dump_yaml(produced))
     _trace(
-        ctx.workspace,
+        ctx,
         {
             "event": "artifact_written",
             "key": ctx.key(iteration, role),
@@ -291,7 +303,7 @@ def _apply_delta(ctx: _Ctx, proposal: Doc, rp: Doc, cd: Doc) -> Doc:
         f"proposal://{data['proposal_id']}",
     )
     _trace(
-        ctx.workspace,
+        ctx,
         {
             "event": "delta_applied",
             "iteration": cd.data["iteration"],
@@ -344,7 +356,7 @@ def _set_status(ctx: _Ctx, proposal: Doc, status: str) -> Doc:
     data["updated_at"] = ctx.now
     ws.write_atomic(proposal.path, ws.dump_yaml(data))
     _trace(
-        ctx.workspace,
+        ctx,
         {
             "event": "transition",
             "from": old,
@@ -404,7 +416,7 @@ def run_loop(
         state["stop"] = {"verdict": FAILED, "reason": reason}
         _write_state(workspace, state)
         _trace(
-            workspace,
+            ctx,
             {
                 "event": "stopped",
                 "verdict": FAILED,
@@ -492,7 +504,7 @@ def run_loop(
 
         verdict, reason = evaluate(rp, cd, iteration, max_iterations)
         _trace(
-            workspace,
+            ctx,
             {
                 "event": "verdict",
                 "iteration": iteration,
@@ -500,6 +512,11 @@ def run_loop(
                 "reason": reason,
             },
         )
+        # The evaluate boundary pauses BEFORE terminal effects are applied:
+        # it simulates a crash between the verdict trace and the status/state
+        # writes; the deterministic evaluator re-derives the verdict on resume.
+        if stop_after == f"evaluate:{iteration}":
+            return paused(iteration)
         if verdict == READY:
             proposal = _set_status(ctx, proposal, READY)
             state["stop"] = {"verdict": READY, "reason": reason}
@@ -521,7 +538,4 @@ def run_loop(
                 proposal_version=proposal.data["version"],
                 report=ctx.report,
             )
-        if stop_after == f"evaluate:{iteration}":
-            return paused(iteration)
-
     raise LoopError("loop ended without a verdict")  # pragma: no cover
