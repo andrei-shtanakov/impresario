@@ -61,8 +61,19 @@
   канонический `_PLAN_EXEMPT` (пустой: уточнение владельца — exemption
   vault отменён 2026-07-30, см. friction №16); coverage_hit раскрывает
   применённые и неизвестные exemptions всегда, включая полное покрытие
-- [ ] Входной контракт approved ProductProposal для steward/discovery
-- [ ] dispatcher/Robin: read-only `product_proposal/gate_waiting` observation
+- [ ] Входной контракт approved ProductProposal для steward/discovery —
+  handoff подан 2026-08-12 по ADR-ECO-006: inbox steward#64 (принят под slug
+  `product-proposal-intake`), реализация steward#65 (вендоринг обеих схем @
+  `a2672a8` + `steward proposal-intake`, живой смоук на PP-101 admit/reject);
+  закрыть после мержа steward#65 владельцем
+- [ ] dispatcher/Robin: read-only `product_proposal/gate_waiting` observation —
+  handoff подан 2026-08-12: inbox dispatcher#129 (фаза 1 — contract-backed
+  ожидания Gate A/B из статуса + активных решений); фаза 2 (`needs_human`)
+  заблокирована пунктом ниже на нашей стороне
+- [ ] Законтрактовать сигнал `needs_human` для внешних наблюдателей: сегодня
+  он живёт в `loop.state` — внутреннем состоянии reference-раннера, не
+  контракте; вариантов два — контракт loop-state/v1 или типизированное
+  emitted-событие; без этого фаза 2 dispatcher#129 невозможна
 
 ## M3 — Kapelle battle-test
 
