@@ -66,15 +66,22 @@ def _read_state(workspace: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _state_errors(state: dict[str, Any], validator: Draft202012Validator) -> list[str]:
+    return [
+        error.message
+        for error in sorted(validator.iter_errors(state), key=lambda e: list(e.path))
+    ]
+
+
 def _write_state(
     workspace: Path, state: dict[str, Any], validator: Draft202012Validator
 ) -> None:
     """Refuse to persist a state that violates loop-state/v1 (fail-closed)."""
-    errors = sorted(validator.iter_errors(state), key=lambda e: list(e.path))
+    errors = _state_errors(state, validator)
     if errors:
         raise LoopError(
             f"{state_path(workspace)}: refusing to write invalid loop-state: "
-            + "; ".join(e.message for e in errors)
+            + "; ".join(errors)
         )
     ws.write_atomic(
         state_path(workspace), json.dumps(state, ensure_ascii=False, indent=2)
@@ -186,6 +193,15 @@ def resume_loop(
     precondition (stop is null).
     """
     state = _read_state(workspace)
+    validator = load_validators(contracts_dir)["loop-state"]
+    # Fail closed before touching any field: a legacy/corrupted loop.state
+    # must surface as a typed error, not a KeyError deep in the protocol.
+    errors = _state_errors(state, validator)
+    if errors:
+        raise LoopError(
+            f"{state_path(workspace)}: refusing to resume from invalid "
+            "loop-state: " + "; ".join(errors)
+        )
     stop = state.get("stop")
     if not stop or stop.get("verdict") != NEEDS_HUMAN:
         raise LoopError(
@@ -196,7 +212,6 @@ def resume_loop(
         raise LoopError(
             f"resume requires a larger iteration budget than {state['max_iterations']}"
         )
-    validator = load_validators(contracts_dir)["loop-state"]
     stop_iteration = int(stop["iteration"])
     already_resumed = any(
         e.get("event") == "resumed" and e.get("iteration") == stop_iteration

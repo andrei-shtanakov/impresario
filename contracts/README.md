@@ -41,8 +41,8 @@
 | Evaluation run | `RUN-[0-9]{3,}` | `RUN-001` |
 | Loop | `LOOP-[0-9]{3,}` | `LOOP-101` |
 
-Внутренние ссылки — URI со схемой по типу объекта (восемь схем по числу
-контрактов): `idea://IDEA-001`, `assessment://ASMT-001`,
+Внутренние ссылки — URI со схемой по типу объекта; разрешимых ссылочных
+схем восемь: `idea://IDEA-001`, `assessment://ASMT-001`,
 `backlog://BL-portfolio`, `research-pack://RP-001`, `concept-draft://CD-001`,
 `exchange-log://XL-001`, `proposal://PP-001`, `gate-decision://GD-001`.
 

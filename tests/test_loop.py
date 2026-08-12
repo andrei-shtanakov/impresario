@@ -380,6 +380,27 @@ def test_resume_retry_after_partial_failure_is_idempotent(
     assert state["stop"] is None
 
 
+def test_resume_rejects_invalid_legacy_state(loop_ws: Path) -> None:
+    """A pre-contract loop.state (no stop.iteration) fails typed, not KeyError."""
+    from impresario.loop import LoopError, resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    path = loop_ws / "loop.state"
+    state = json.loads(path.read_text(encoding="utf-8"))
+    del state["stop"]["iteration"]  # legacy state written before loop-state/v1
+    path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+    with pytest.raises(LoopError, match="invalid loop-state"):
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
+
+
 def test_resume_refuses_non_needs_human(loop_ws: Path) -> None:
     from impresario.loop import LoopError, resume_loop
 
