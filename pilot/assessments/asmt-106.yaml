@@ -1,0 +1,24 @@
+assessment_id: ASMT-106
+idea_ref: idea://IDEA-106
+run_id: RUN-001
+input_hash: "sha256:b68d05f916101afcb154ada7f0a4f5675ca4f835582df10eed318d771733ad1e"
+policy_version: scoring/v1
+evidence_refs:
+  - "strategy://ecosystem/2026/G-2"
+  - "prograph-vault/authored/notes/ecosystem-roadmap.md §1.1 (routing-grade data; report_benchmark-v1 у 5 владельцев)"
+fit_strategy: 5
+fit_market: 4
+fit_standards: 4
+strategy_blocker: false
+standards_blocker: false
+rationale:
+  fit_strategy: "Прямое ядро G-2: ATP как источник routing-grade данных — якорное направление роадмапа."
+  fit_market: "Потребитель существует и подключён: arbiter routable-flip gate уже потребляет benchmark-evidence; спрос доказан кодом."
+  fit_standards: "Контракт report_benchmark-v1 живой без дрейфа; требуется строгая версия — путь по STD-3 понятен."
+confidence: medium
+evaluator:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: prioritizer/manual-v0
+evaluated_at: 2026-08-12T16:00:00Z

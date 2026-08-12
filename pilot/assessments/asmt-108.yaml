@@ -1,0 +1,23 @@
+assessment_id: ASMT-108
+idea_ref: idea://IDEA-108
+run_id: RUN-001
+input_hash: "sha256:92005983dd804bed25bf3f9ad283b1bc5a5a156356c55d3bc67507219d63a7d4"
+policy_version: scoring/v1
+evidence_refs:
+  - "memory maestro-gates-v12: H-2 — хвост после gates v1.2–v1.3, без эскалаций с 2026-07-13"
+fit_strategy: 2
+fit_market: 2
+fit_standards: 3
+strategy_blocker: false
+standards_blocker: false
+rationale:
+  fit_strategy: "Ни одну из целей G-1…G-5 прямо не двигает: локальная оптимизация wall-clock."
+  fit_market: "Хвост живёт с июля без эскалаций — боль терпимая; выгода проявится только на больших спеках."
+  fit_standards: "Риск для детерминированной семантики отчёта: параллелизм требует аккуратного дизайна (зазор, не запрет)."
+confidence: medium
+evaluator:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: prioritizer/manual-v0
+evaluated_at: 2026-08-12T16:00:00Z

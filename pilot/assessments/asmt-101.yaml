@@ -1,0 +1,25 @@
+assessment_id: ASMT-101
+idea_ref: idea://IDEA-101
+run_id: RUN-001
+input_hash: "sha256:ce1d05bc2e7d38206acf628dbedecfac9c7508bdffb7c777a6b788cbe3be2e7b"
+policy_version: scoring/v1
+evidence_refs:
+  - "strategy://ecosystem/2026/G-5"
+  - "standards://ecosystem/STD-9"
+  - "prograph-vault: robin-runtime дайджесты покрывали 6/12 зеркал; maestro/libretto слепота до 2026-07-26"
+fit_strategy: 5
+fit_market: 4
+fit_standards: 5
+strategy_blocker: false
+standards_blocker: false
+rationale:
+  fit_strategy: "Прямое попадание в G-5 (наблюдаемость как фундамент): закрывает документированный класс дефекта «молча слеп»."
+  fit_market: "Спрос внутренний и доказанный: выводы об экосистеме читались из дайджестов с половинным покрытием; инцидент maestro/libretto зафиксирован."
+  fit_standards: "Реализует STD-9 буквально; рисков соответствия нет."
+confidence: high
+evaluator:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: prioritizer/manual-v0
+evaluated_at: 2026-08-12T16:00:00Z

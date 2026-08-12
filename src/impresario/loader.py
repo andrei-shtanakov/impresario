@@ -18,6 +18,7 @@ CONTRACT_KINDS: tuple[str, ...] = (
     "exchange-log",
     "product-proposal",
     "gate-decision",
+    "run-record",
 )
 
 _ID_PREFIX_TO_KIND: dict[str, str] = {
@@ -68,6 +69,8 @@ def detect_kind(data: dict[str, Any]) -> str:
         return "product-proposal"
     if "decision_id" in data:
         return "gate-decision"
+    if "run_id" in data:  # after assessment_id: assessments carry run_id too
+        return "run-record"
     raw_id = data.get("id")
     if isinstance(raw_id, str) and "-" in raw_id:
         kind = _ID_PREFIX_TO_KIND.get(raw_id.split("-", 1)[0])

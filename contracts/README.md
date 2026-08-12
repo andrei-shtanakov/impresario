@@ -15,6 +15,7 @@
 | [exchange-log/v1](./exchange-log/v1/schema.json) | ExchangeLog |
 | [product-proposal/v1](./product-proposal/v1/schema.json) | ProductProposal (SSOT FSM) |
 | [gate-decision/v1](./gate-decision/v1/schema.json) | GateDecision |
+| [run-record/v1](./run-record/v1/schema.json) | RunRecord (immutable запись материализации бэклога) |
 
 ## Канонические идентификаторы схем
 
@@ -44,9 +45,10 @@
 `exchange-log://XL-001`, `proposal://PP-001`, `gate-decision://GD-001`.
 
 Валидатор проверяет разрешимость внутренних ссылок в пределах bundle
-(fail-closed: висячая ссылка известной схемы — ошибка). Evaluation run не
-материализуется как документ v1: `RUN-…` встречается только в полях
-`run_id` / `last_run_id` (обычный ID, не ссылка). Внешние evidence-ссылки
+(fail-closed: висячая ссылка известной схемы — ошибка). Прогон
+материализации записывается документом `run-record/v1`, но `run://` не
+является ссылочной схемой: `RUN-…` встречается только в полях
+`run_id` / `last_run_id` (обычный ID). Внешние evidence-ссылки
 (`strategy://…`, `standards://…`, `https://…`, произвольные URI) в v1 не
 разрешаются и не считаются ошибкой.
 

@@ -1,0 +1,24 @@
+assessment_id: ASMT-105
+idea_ref: idea://IDEA-105
+run_id: RUN-001
+input_hash: "sha256:f004f792e509fd4880efde6b0445ce995da5b73bed57e37df0187a1b142ba472"
+policy_version: scoring/v1
+evidence_refs:
+  - "strategy://ecosystem/2026/G-3"
+  - "maestro PR #90 (Phase 0 merged): transport-agnostic слой готов"
+fit_strategy: 5
+fit_market: unknown
+fit_standards: 4
+strategy_blocker: false
+standards_blocker: false
+rationale:
+  fit_strategy: "Ядро G-3: distributed execution с сохранением recoverability/audit — прямое продолжение уже смерженной Phase 0."
+  fit_market: "Улик спроса нет: жалоба «длинные прогоны монополизируют машину» нигде не зафиксирована как измеренная боль — честный unknown, нужен замер частоты/длительности прогонов."
+  fit_standards: "STD-7 (durable state) — в ДНК фичи; вопрос вендоринга ContainerRuntime решается по C-2/STD-3."
+confidence: medium
+evaluator:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: prioritizer/manual-v0
+evaluated_at: 2026-08-12T16:00:00Z

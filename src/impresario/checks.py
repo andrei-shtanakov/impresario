@@ -23,6 +23,9 @@ _KIND_TO_SCHEME = {
     "exchange-log": "exchange-log",
     "product-proposal": "proposal",
     "gate-decision": "gate-decision",
+    # run:// is not a resolvable ref scheme (last_run_id is a plain id), but
+    # every doc needs a canonical ref for the known-set in check_refs.
+    "run-record": "run",
 }
 
 _ID_FIELDS = ("id", "assessment_id", "proposal_id", "decision_id")
