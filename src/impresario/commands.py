@@ -306,6 +306,12 @@ def cmd_select(
         )
         return report, None
 
+    _check_selected_idea_freshness(
+        workspace, data, idea_ref, idea_path, validators, report
+    )
+    if report.errors:
+        return report, None
+
     existing_gd = {
         d.data["decision_id"]
         for d in _load_dir(
@@ -360,8 +366,60 @@ def cmd_select(
     if report.errors:
         return report, None
 
+    # Pre-flight the card edit: every fallible step happens before the first
+    # write, so a failure cannot leave decision/backlog/card half-applied.
+    updated_card = ws.prepare_idea_status(idea_path, "selected")
+
     with ws.single_writer_lock(workspace):
         ws.write_atomic(decision_path, ws.dump_yaml(decision))
         ws.write_atomic(ws.backlog_path(workspace), ws.dump_yaml(new_backlog))
-        ws.set_idea_status(idea_path, "selected")
+        ws.write_atomic(idea_path, updated_card)
     return report, decision
+
+
+def _check_selected_idea_freshness(
+    workspace: Path,
+    backlog: dict[str, Any],
+    idea_ref: str,
+    idea_path: Path,
+    validators: dict,
+    report: Report,
+) -> None:
+    """The selected card must be byte-equivalent to what the rank evaluated.
+
+    The run record behind the current backlog version (last_run_id) carries
+    the input_hash of every idea; a mismatch means the card changed after
+    ranking, so the rank the human is looking at is stale.
+    """
+    run_id = str(backlog.get("last_run_id"))
+    run_path = ws.runs_dir(workspace) / f"{run_id.lower()}.yaml"
+    if not run_path.exists():
+        report.errors.append(
+            Finding(
+                code="RUN_RECORD_MISSING",
+                path=str(run_path),
+                message=(
+                    f"run record {run_id} behind backlog version "
+                    f"{backlog.get('version')} is missing; cannot prove the "
+                    "rank is fresh"
+                ),
+            )
+        )
+        return
+    run = _load_checked(run_path, "run-record", validators, report)
+    if run is None:
+        return
+    recorded = next((i for i in run.data["inputs"] if i["idea_ref"] == idea_ref), None)
+    current = canonical_doc_hash(load_doc(idea_path).data)
+    if recorded is None or recorded["input_hash"] != current:
+        report.errors.append(
+            Finding(
+                code="STALE_INPUT",
+                path=str(idea_path),
+                message=(
+                    f"{idea_ref} changed after ranking run {run_id} "
+                    f"(recorded {recorded['input_hash'] if recorded else 'nothing'}, "
+                    f"current {current}); re-run backlog rank before selecting"
+                ),
+            )
+        )
