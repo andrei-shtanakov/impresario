@@ -394,16 +394,24 @@ def test_resume_retry_after_partial_failure_is_idempotent(
     monkeypatch.setattr(loop_mod, "_write_state", flaky)
     with pytest.raises(OSError):
         resume_loop(
-            loop_ws, CONTRACTS_DIR, max_iterations=3, actor="andrei",
-            reason="r", now_iso=NOW,
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
         )
     state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
     assert state["stop"]["verdict"] == "needs_human"  # ожидание активно
 
     later = "2026-08-12T19:00:00Z"
     resume_loop(
-        loop_ws, CONTRACTS_DIR, max_iterations=3, actor="andrei",
-        reason="r", now_iso=later,
+        loop_ws,
+        CONTRACTS_DIR,
+        max_iterations=3,
+        actor="andrei",
+        reason="r",
+        now_iso=later,
     )
     resumed = [e for e in _trace_events(loop_ws) if e["event"] == "resumed"]
     assert len(resumed) == 1
@@ -427,10 +435,7 @@ def _read_trace(workspace: Path) -> list[dict[str, Any]]:
     path = workspace / TRACE_FILE
     if not path.exists():
         return []
-    return [
-        json.loads(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
-    ]
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
 ```
 
 ```python
@@ -534,9 +539,7 @@ def _mutate_state(workspace: Path, **changes: Any) -> None:
     path = workspace / "loop.state"
     state = json.loads(path.read_text(encoding="utf-8"))
     state.update(changes)
-    path.write_text(
-        json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _bundle_codes(workspace: Path) -> set[str]:
@@ -651,8 +654,7 @@ def check_loop_states(docs: list[Doc]) -> list[Finding]:
         proposals = [
             d
             for d in docs
-            if d.kind == "product-proposal"
-            and d.data.get("proposal_id") == proposal_id
+            if d.kind == "product-proposal" and d.data.get("proposal_id") == proposal_id
         ]
         if len(proposals) != 1:
             err(
@@ -680,9 +682,7 @@ def check_loop_states(docs: list[Doc]) -> list[Finding]:
         stop = data.get("stop")
         xlog_id = data.get("exchange_log_id")
         xlogs = [
-            d
-            for d in docs
-            if d.kind == "exchange-log" and d.data.get("id") == xlog_id
+            d for d in docs if d.kind == "exchange-log" and d.data.get("id") == xlog_id
         ]
         expected_ref = f"proposal://{proposal_id}"
         if xlogs:
