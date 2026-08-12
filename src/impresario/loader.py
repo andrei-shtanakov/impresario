@@ -19,6 +19,7 @@ CONTRACT_KINDS: tuple[str, ...] = (
     "product-proposal",
     "gate-decision",
     "run-record",
+    "loop-state",
 )
 
 _ID_PREFIX_TO_KIND: dict[str, str] = {
@@ -63,6 +64,8 @@ _PlainDateLoader.add_constructor(
 
 def detect_kind(data: dict[str, Any]) -> str:
     """Detect the contract kind of a document from its identifying fields."""
+    if "loop_id" in data:
+        return "loop-state"
     if "assessment_id" in data:
         return "axis-assessment"
     if "proposal_id" in data:
@@ -90,6 +93,11 @@ def parse_yaml_plain(text: str) -> Any:
 def load_doc(path: Path) -> Doc:
     """Load a single YAML/JSON artifact and detect its kind."""
     text = path.read_text(encoding="utf-8")
+    if path.name == "loop.state":
+        data = json.loads(text)
+        if not isinstance(data, dict):
+            raise UnknownContractError(f"{path}: document is not a mapping")
+        return Doc(path=path, kind="loop-state", data=data)
     data = json.loads(text) if path.suffix == ".json" else parse_yaml_plain(text)
     if not isinstance(data, dict):
         raise UnknownContractError(f"{path}: document is not a mapping")
