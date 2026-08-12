@@ -1,0 +1,17 @@
+decision_id: GD-001
+gate_id: qg5_business
+subject:
+  kind: product_proposal
+  ref: proposal://PP-101
+  version: 6
+decision: approve
+decided_by:
+  kind: human
+  id: andrei
+  role: business_owner
+decided_at: '2026-08-12T04:09:21Z'
+reason: <инвестируем ли в Robin full-coverage>
+artifacts_reviewed:
+- proposal://PP-101
+- research-pack://RP-503
+- concept-draft://CD-503
