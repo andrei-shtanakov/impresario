@@ -68,9 +68,10 @@
   с evidence-проверкой, живой смоук на PP-101 admit/reject; у steward
   остаётся их приёмка drift-вахты (`impresario-contract-drift-acceptance`)
 - [ ] dispatcher/Robin: read-only `product_proposal/gate_waiting` observation —
-  handoff подан 2026-08-12: inbox dispatcher#129 (фаза 1 — contract-backed
-  ожидания Gate A/B из статуса + активных решений); фаза 2 (`needs_human`)
-  заблокирована пунктом ниже на нашей стороне
+  фаза 1 доставлена и принята (dispatcher PR #132/#133); фаза 2
+  (`needs_human`) разблокирована пунктом ниже, handoff подан 2026-08-12:
+  inbox dispatcher#136 (вендорить `loop-state/v1` @ merge `51e3103`);
+  остаток пункта — за dispatcher
 - [x] **Сигнал `needs_human` законтрактован (loop-state/v1)**: `loop.state`
   промоутирован в контракт (projection, не журнал; identity
   `(loop_id, stop.iteration)`, freshness `stop.at`, terminal сохраняет
@@ -78,7 +79,8 @@
   identity-dedup evidence, 5 кросс-чеков `LOOPSTATE_*`, бэкфилл pp-101 из
   immutable evidence; семантика — docs/semantics.md «Состояние цикла».
   Спека: docs/superpowers/specs/2026-08-12-loop-state-contract-design.md.
-  Follow-up: handoff dispatcher#129 фаза 2 (вендорить схему @ merge-commit)
+  **Влит 2026-08-12** (PR #12, merge `51e3103`, ревью Copilot отработано);
+  follow-up выполнен: handoff dispatcher#136 подан
 
 ## M3 — Kapelle battle-test
 
