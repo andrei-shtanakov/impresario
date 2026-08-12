@@ -429,19 +429,21 @@ def check_loop_states(docs: list[Doc]) -> list[Finding]:
             d for d in docs if d.kind == "exchange-log" and d.data.get("id") == xlog_id
         ]
         expected_ref = f"proposal://{proposal_id}"
-        if xlogs:
-            findings.extend(
-                Finding(
-                    code="LOOPSTATE_XLOG",
-                    path=path,
-                    message=(
-                        f"exchange-log {xlog_id} belongs to "
-                        f"{x.data.get('proposal_ref')}, not {expected_ref}"
-                    ),
-                )
-                for x in xlogs
-                if x.data.get("proposal_ref") != expected_ref
+        if len(xlogs) > 1:
+            # An ambiguous resolution IS the finding — same as LOOPSTATE_PROPOSAL
+            # below, don't silently pick one and check only that one's ownership.
+            err(
+                "LOOPSTATE_XLOG",
+                f"exchange_log_id {xlog_id} matches {len(xlogs)} exchange-log(s) "
+                "in bundle (expected exactly 1)",
             )
+        elif len(xlogs) == 1:
+            if xlogs[0].data.get("proposal_ref") != expected_ref:
+                err(
+                    "LOOPSTATE_XLOG",
+                    f"exchange-log {xlog_id} belongs to "
+                    f"{xlogs[0].data.get('proposal_ref')}, not {expected_ref}",
+                )
         elif stop and stop.get("verdict") in ("needs_human", "ready_for_business"):
             # failed/running may legitimately predate the first exchange
             # entry; a loop that reached a verdict past iteration 0 cannot.

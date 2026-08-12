@@ -492,6 +492,39 @@ def test_loop_state_foreign_exchange_log(loop_ws: Path) -> None:
     assert "LOOPSTATE_XLOG" in _bundle_codes(loop_ws)
 
 
+def test_loop_state_ambiguous_exchange_log(loop_ws: Path) -> None:
+    """Two exchange-logs sharing an id must raise the ambiguity itself.
+
+    A foreign second match alone would already fail the ownership check
+    (proposal_ref != expected), so a bare `"LOOPSTATE_XLOG" in codes`
+    assertion would pass even without ambiguity handling. Assert on the
+    message instead, to pin the fix (reject >1 match up front) rather than
+    the ownership branch that happens to fire for unrelated reasons.
+    """
+    _run(loop_ws, STUCK_SCRIPT)
+    foreign_log = {
+        "id": "XL-001",  # same id as the real exchange-log.yaml
+        "proposal_ref": "proposal://PP-999",
+        "entries": [
+            {
+                "iteration": 0,
+                "actor": "researcher",
+                "artifact_kind": "research_pack",
+                "artifact_ref": "research-pack://RP-999",
+                "at": NOW,
+            }
+        ],
+    }
+    (loop_ws / "exchange-log-foreign.yaml").write_text(
+        yaml.safe_dump(foreign_log, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    report = validate_paths([loop_ws], CONTRACTS_DIR, bundle=True)
+    xlog_findings = [f for f in report.errors if f.code == "LOOPSTATE_XLOG"]
+    assert xlog_findings, "LOOPSTATE_XLOG must fire on ambiguous exchange-log id"
+    assert any("expected exactly 1" in f.message for f in xlog_findings)
+
+
 def test_loop_state_iteration_over_budget(loop_ws: Path) -> None:
     _run(loop_ws, STUCK_SCRIPT)
     state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
