@@ -10,6 +10,7 @@ decision is defined by the FSM transition table, not by the decision name.
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -67,11 +68,20 @@ def _active(decisions: list[Doc]) -> list[Doc]:
     ]
 
 
+_ARTIFACT_REF_RE = re.compile(
+    r"^(?:research-pack|concept-draft)://([A-Z]{2}-[0-9]{3,})$"
+)
+
+
 def _resolve_ref(workspace: Path, ref: str | None) -> Doc | None:
-    if not ref:
+    """Resolve an artifact ref to a workspace file, refusing anything that
+    is not a well-formed contract ref (no path fragments reach the FS)."""
+    if not isinstance(ref, str):
         return None
-    name = ref.split("://", 1)[1].lower()
-    path = workspace / f"{name}.yaml"
+    match = _ARTIFACT_REF_RE.match(ref)
+    if match is None:
+        return None
+    path = workspace / f"{match.group(1).lower()}.yaml"
     return load_doc(path) if path.exists() else None
 
 
@@ -190,6 +200,8 @@ def _decide_locked(
     target = transition if transition is not None else return_to
     if target is None:
         return err("USAGE", f"decision {decision} requires --return-to")
+    if decision == "recycle" and not required_changes:
+        return err("USAGE", "decision recycle requires --required-change")
 
     proposal_ref = f"proposal://{data['proposal_id']}"
     all_decisions = _decisions(workspace)

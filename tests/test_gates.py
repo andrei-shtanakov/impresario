@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
 from impresario.cli import validate_paths
 from impresario.gate import decide, readiness
@@ -116,11 +117,14 @@ def test_readiness_blocked_after_gate_a_with_open_criticals(
         decision="approve",
         expected_version=version,
     )
-    # Reopen a critical assumption in the latest concept draft on disk.
+    # Reopen a critical assumption in the latest concept draft on disk
+    # (structural edit, not text surgery).
     cd_path = ready_ws / "cd-002.yaml"
-    text = cd_path.read_text(encoding="utf-8")
+    cd = load_doc(cd_path).data
+    for assumption in cd["assumptions"]:
+        assumption.pop("answered_by", None)
     cd_path.write_text(
-        text.replace("  answered_by: research-pack://RP-002\n", ""),
+        yaml.safe_dump(cd, allow_unicode=True, sort_keys=False),
         encoding="utf-8",
     )
     ok, reasons = readiness(ready_ws)
@@ -231,6 +235,46 @@ def test_kill_is_terminal(ready_ws: Path) -> None:
     assert load_doc(ready_ws / "proposal.yaml").data["status"] == "killed"
     bundle = validate_paths([ready_ws], CONTRACTS_DIR, bundle=True)
     assert bundle.ok, [f.message for f in bundle.errors]
+
+
+def test_recycle_requires_required_changes(ready_ws: Path) -> None:
+    version = load_doc(ready_ws / "proposal.yaml").data["version"]
+    report, record = _decide(
+        ready_ws,
+        T0,
+        gate_id="qg5_business",
+        decision="recycle",
+        expected_version=version,
+        return_to="in_iteration",
+    )
+    assert record is None
+    assert {f.code for f in report.errors} == {"USAGE"}
+
+
+def test_malformed_ref_does_not_reach_filesystem(ready_ws: Path) -> None:
+    proposal_path = ready_ws / "proposal.yaml"
+    data = load_doc(proposal_path).data
+    data["refs"]["latest_concept_draft"] = "concept-draft://../../etc/passwd"
+    proposal_path.write_text(
+        yaml.safe_dump(data, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    ok, reasons = readiness(ready_ws)
+    assert not ok
+    assert any("not resolvable" in r for r in reasons)
+
+
+def test_cli_readiness_missing_workspace(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    import json as _json
+
+    from impresario.cli import main
+
+    code = main(["gate", "readiness", str(tmp_path / "nope")])
+    out = _json.loads(capsys.readouterr().out)
+    assert code == 2
+    assert out["ok"] is False
 
 
 def test_version_conflict(ready_ws: Path) -> None:

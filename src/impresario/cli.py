@@ -314,7 +314,11 @@ def _run_gate(args) -> int:
     from .workspace import WorkspaceError as WsError
 
     if args.gate_command == "readiness":
-        ok, reasons = readiness(args.workspace)
+        try:
+            ok, reasons = readiness(args.workspace)
+        except (FileNotFoundError, UnknownContractError, yaml.YAMLError) as exc:
+            print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
+            return EXIT_USAGE
         print(
             json.dumps(
                 {"readiness": "ok" if ok else "blocked", "reasons": reasons},
