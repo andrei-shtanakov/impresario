@@ -21,8 +21,10 @@
 - [x] Оценочный прогон RUN-001 (8 assessments) + материализация RUN-002:
   `pilot/backlog.yaml` v1 (7 ранжировано, 1 pending, 0 excluded)
 - [x] Friction log пилота (`pilot/friction-log.md`, 7 наблюдений)
-- [ ] **QG-4: человек выбирает идею** — `impresario backlog select pilot
-  IDEA-… --expected-version 1 --actor … --reason …` (агент не выбирает)
+- [x] **QG-4 закрыт 2026-08-12**: человек (andrei) выбрал IDEA-101
+  (Robin full-coverage) — GD-001, backlog v2, карточка `selected`.
+  **M1 exit-критерий выполнен**: выбранная идея воспроизводимо получена
+  из versioned backlog + human decision evidence.
 
 ## M2 — reference forconcept loop
 

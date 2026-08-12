@@ -1,6 +1,6 @@
 id: BL-ecosystem
-version: 1
-updated_at: '2026-08-12T01:37:26Z'
+version: 2
+updated_at: '2026-08-12T01:55:12Z'
 policy:
   policy_version: scoring/v1
   weights:
@@ -17,7 +17,7 @@ items:
   idea_ref: idea://IDEA-101
   title: 'Robin: полнопокрывающие дайджесты экосистемы'
   source_kind: internal
-  status: new
+  status: selected
   priority: high
   score: 4.67
   fit_strategy: 5

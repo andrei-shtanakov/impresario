@@ -6,7 +6,7 @@ source:
   ref: "prograph-vault: robin digest coverage — дайджесты покрывают 6/12 зеркал (memory 2026-07)"
 priority: medium
 business_attractiveness: 3
-status: new
+status: selected
 type: enhancement
 hypothesis: >-
   Дайджест Robin, покрывающий все зеркала с явным отчётом о пробелах,
