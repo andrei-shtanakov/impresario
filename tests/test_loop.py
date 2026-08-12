@@ -438,6 +438,70 @@ def test_write_state_rejects_invalid_state(loop_ws: Path) -> None:
     assert (loop_ws / "loop.state").read_text(encoding="utf-8") == before
 
 
+def _mutate_state(workspace: Path, **changes: Any) -> None:
+    path = workspace / "loop.state"
+    state = json.loads(path.read_text(encoding="utf-8"))
+    state.update(changes)
+    path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _bundle_codes(workspace: Path) -> set[str]:
+    report = validate_paths([workspace], CONTRACTS_DIR, bundle=True)
+    return {f.code for f in report.errors}
+
+
+def test_loop_state_included_in_bundle_validation(loop_ws: Path) -> None:
+    _run(loop_ws, STUCK_SCRIPT)
+    _mutate_state(loop_ws, loop_id="broken")  # schema violation
+    assert "SCHEMA" in _bundle_codes(loop_ws)
+
+
+def test_loop_state_foreign_proposal(loop_ws: Path) -> None:
+    _run(loop_ws, STUCK_SCRIPT)
+    _mutate_state(loop_ws, proposal_id="PP-999")
+    assert "LOOPSTATE_PROPOSAL" in _bundle_codes(loop_ws)
+
+
+def test_loop_state_idea_ref_mismatch(loop_ws: Path) -> None:
+    _run(loop_ws, STUCK_SCRIPT)
+    _mutate_state(loop_ws, idea_ref="idea://IDEA-999")
+    assert "LOOPSTATE_IDEA_REF" in _bundle_codes(loop_ws)
+
+
+def test_loop_state_stale_idea_hash(loop_ws: Path) -> None:
+    _run(loop_ws, STUCK_SCRIPT)
+    _mutate_state(loop_ws, idea_input_hash="sha256:" + "0" * 64)
+    assert "LOOPSTATE_IDEA_HASH" in _bundle_codes(loop_ws)
+
+
+def test_loop_state_dangling_exchange_log(loop_ws: Path) -> None:
+    _run(loop_ws, STUCK_SCRIPT)
+    _mutate_state(loop_ws, exchange_log_id="XL-999")
+    assert "LOOPSTATE_XLOG" in _bundle_codes(loop_ws)
+
+
+def test_loop_state_foreign_exchange_log(loop_ws: Path) -> None:
+    _run(loop_ws, STUCK_SCRIPT)
+    log_path = loop_ws / "exchange-log.yaml"
+    log = yaml.safe_load(log_path.read_text(encoding="utf-8"))
+    log["proposal_ref"] = "proposal://PP-999"
+    log_path.write_text(
+        yaml.safe_dump(log, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    assert "LOOPSTATE_XLOG" in _bundle_codes(loop_ws)
+
+
+def test_loop_state_iteration_over_budget(loop_ws: Path) -> None:
+    _run(loop_ws, STUCK_SCRIPT)
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    state["stop"]["iteration"] = 5
+    (loop_ws / "loop.state").write_text(
+        json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    assert "LOOPSTATE_ITERATION" in _bundle_codes(loop_ws)
+
+
 def test_cli_bad_script_is_json_error(
     loop_ws: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

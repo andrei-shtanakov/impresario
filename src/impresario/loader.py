@@ -112,7 +112,8 @@ def collect_doc_paths(paths: list[Path]) -> list[Path]:
             found.extend(
                 child
                 for child in sorted(path.rglob("*"))
-                if child.is_file() and child.suffix in _DOC_SUFFIXES
+                if child.is_file()
+                and (child.suffix in _DOC_SUFFIXES or child.name == "loop.state")
             )
         else:
             found.append(path)

@@ -6,6 +6,7 @@ import re
 from datetime import UTC, datetime
 from typing import Any
 
+from .hashing import canonical_doc_hash
 from .loader import Doc
 from .report import Finding
 
@@ -26,9 +27,11 @@ _KIND_TO_SCHEME = {
     # run:// is not a resolvable ref scheme (last_run_id is a plain id), but
     # every doc needs a canonical ref for the known-set in check_refs.
     "run-record": "run",
+    # loop:// is not a resolvable ref scheme; needed only for the known-set.
+    "loop-state": "loop",
 }
 
-_ID_FIELDS = ("id", "assessment_id", "proposal_id", "decision_id")
+_ID_FIELDS = ("loop_id", "id", "assessment_id", "proposal_id", "decision_id")
 
 GATED_STATUSES = ("ready_for_business", "business_approved", "approved")
 
@@ -376,6 +379,86 @@ def check_exchange_logs(docs: list[Doc]) -> list[Finding]:
     return findings
 
 
+def check_loop_states(docs: list[Doc]) -> list[Finding]:
+    """LoopState identity: the projection must belong to its bundle.
+
+    Schema guards the shape; these checks guard identity (spec:
+    docs/superpowers/specs/2026-08-12-loop-state-contract-design.md).
+    """
+    findings: list[Finding] = []
+    for doc in docs:
+        if doc.kind != "loop-state":
+            continue
+        path, data = str(doc.path), doc.data
+
+        def err(code: str, message: str, *, _path: str = path) -> None:
+            findings.append(Finding(code=code, path=_path, message=message))
+
+        proposal_id = data.get("proposal_id")
+        proposals = [
+            d
+            for d in docs
+            if d.kind == "product-proposal" and d.data.get("proposal_id") == proposal_id
+        ]
+        if len(proposals) != 1:
+            err(
+                "LOOPSTATE_PROPOSAL",
+                f"proposal_id {proposal_id} matches {len(proposals)} "
+                "proposal(s) in bundle (expected exactly 1)",
+            )
+        elif data.get("idea_ref") != proposals[0].data.get("idea_ref"):
+            err(
+                "LOOPSTATE_IDEA_REF",
+                f"idea_ref {data.get('idea_ref')} != proposal idea_ref "
+                f"{proposals[0].data.get('idea_ref')}",
+            )
+
+        idea = _resolve(docs, data.get("idea_ref"))
+        if idea is not None and canonical_doc_hash(idea.data) != data.get(
+            "idea_input_hash"
+        ):
+            err(
+                "LOOPSTATE_IDEA_HASH",
+                f"idea_input_hash does not match {data.get('idea_ref')} "
+                "in bundle (stale or foreign pinned idea)",
+            )
+
+        stop = data.get("stop")
+        xlog_id = data.get("exchange_log_id")
+        xlogs = [
+            d for d in docs if d.kind == "exchange-log" and d.data.get("id") == xlog_id
+        ]
+        expected_ref = f"proposal://{proposal_id}"
+        if xlogs:
+            findings.extend(
+                Finding(
+                    code="LOOPSTATE_XLOG",
+                    path=path,
+                    message=(
+                        f"exchange-log {xlog_id} belongs to "
+                        f"{x.data.get('proposal_ref')}, not {expected_ref}"
+                    ),
+                )
+                for x in xlogs
+                if x.data.get("proposal_ref") != expected_ref
+            )
+        elif stop and stop.get("verdict") in ("needs_human", "ready_for_business"):
+            # failed/running may legitimately predate the first exchange
+            # entry; a loop that reached a verdict past iteration 0 cannot.
+            err(
+                "LOOPSTATE_XLOG",
+                f"exchange_log_id {xlog_id} not found in bundle",
+            )
+
+        if stop and stop.get("iteration", 0) >= data.get("max_iterations", 1):
+            err(
+                "LOOPSTATE_ITERATION",
+                f"stop.iteration {stop.get('iteration')} >= max_iterations "
+                f"{data.get('max_iterations')} (iterations are 0-based)",
+            )
+    return findings
+
+
 def run_bundle_checks(docs: list[Doc]) -> list[Finding]:
     """Run all cross-artifact checks over a bundle."""
     findings: list[Finding] = []
@@ -384,4 +467,5 @@ def run_bundle_checks(docs: list[Doc]) -> list[Finding]:
     findings.extend(check_proposals(docs))
     findings.extend(check_concept_drafts(docs))
     findings.extend(check_exchange_logs(docs))
+    findings.extend(check_loop_states(docs))
     return findings
