@@ -75,19 +75,26 @@ loop-workspace.
 ## Протокол resume (точный порядок)
 
 1. Предусловие (CAS): текущий `stop.verdict == "needs_human"`, иначе
-   `LoopError` — повторный resume после успеха падает явно.
+   `LoopError`.
 2. Записать immutable evidence возобновления: trace-событие `resumed`
    (`by`, `reason`, `from_verdict`, `max_iterations`, **`iteration`** —
-   identity снятого ожидания). Байтовый dedup trace делает повтор
-   идемпотентным.
+   identity снятого ожидания, **`at`** — время человеческого действия).
+   Dedup события `resumed` выполняется по **стабильной identity
+   `(loop_id, iteration)`**, а не по полному JSON: retry с новым `now_iso`
+   не создаёт дубликат, в истории остаётся `at` первой попытки. Повтор
+   той же identity после успешного resume невозможен по построению:
+   после расширения бюджета следующий `needs_human` наступает на строго
+   большей итерации.
 3. Построить новое состояние со `stop: null` и расширенным бюджетом,
    провалидировать против loop-state/v1.
 4. Atomic-replace `loop.state`.
 5. Только затем продолжать цикл (`forconcept run`).
 
-Отказ на шаге 2–4 оставляет старое ожидание активным; повторный resume с
-теми же аргументами идемпотентен (evidence дедуплицируется, replace
-доводится).
+Отказ на шаге 2–4 оставляет старое ожидание активным. Retry после
+частичного сбоя между записью `resumed` и atomic-replace идемпотентен:
+идентичное evidence не дублируется (identity-dedup), replace доводится.
+После успешного replace повторный resume отклоняется CAS-предусловием,
+поскольку `stop == null`.
 
 ## Раннер и внедрение зависимостей
 
@@ -119,7 +126,7 @@ loop-workspace.
 | `LOOPSTATE_PROPOSAL` | `proposal_id` совпадает ровно с одним proposal бандла |
 | `LOOPSTATE_IDEA_REF` | `idea_ref` == `idea_ref` этого proposal |
 | `LOOPSTATE_IDEA_HASH` | `idea_input_hash` == canonical hash idea-документа бандла |
-| `LOOPSTATE_XLOG` | `exchange_log_id` резолвится в ExchangeLog бандла |
+| `LOOPSTATE_XLOG` | `exchange_log_id` резолвится в ExchangeLog бандла, **и** его `proposal_ref == proposal://<proposal_id>` (чужой журнал с подходящим ID не привязывается) |
 | `LOOPSTATE_ITERATION` | `stop.iteration < max_iterations` (итерации 0-based) |
 
 «Terminal сохраняет stop» машинно не проверяется без replay — enforcement
@@ -145,12 +152,15 @@ loop-workspace.
   invalid: пустой `reason`, отсутствующий `at`, неизвестный `verdict`,
   лишнее поле, битый `idea_input_hash`.
 - Раннер: stop-запись валидна против схемы; resume следует протоколу
-  (evidence раньше replace, CAS-предусловие, идемпотентный повтор);
-  запись невалидного состояния отклоняется fail-closed.
+  (evidence раньше replace, CAS-предусловие); retry после частичного сбоя
+  с **новым** `now_iso` не дублирует `resumed` (identity-dedup, `at`
+  первой попытки сохраняется); запись невалидного состояния отклоняется
+  fail-closed.
 - Кросс-чеки: позитив на pp-101, негатив мутациями (чужой proposal_id,
   расходящийся hash, `stop.iteration >= max_iterations`).
-- Golden crash/resume тесты обновляются (в trace `resumed` добавилось
-  `iteration`; `now_iso` в тестах фиксирован — детерминизм сохраняется).
+- Golden crash/resume тесты обновляются (в trace `resumed` добавились
+  `iteration` и `at`; `now_iso` в тестах фиксирован — детерминизм
+  сохраняется).
 - `impresario validate` бандла pp-101 зелёный после бэкфилла.
 
 ## Хвосты
