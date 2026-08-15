@@ -284,3 +284,18 @@ def test_lrd_dangling_supersedes_is_ref_dangling(bundle: list[Doc]) -> None:
         _lrd("LRD-002", supersedes="loop-resume-decision://LRD-999"),
     ]
     assert "REF_DANGLING" in _codes(docs)
+
+
+def test_pilot_pp101_bundle_is_clean_with_backfilled_lrd() -> None:
+    """Живой пилот проходит валидатор; бэкфилл-LRD присутствует и активен."""
+    from impresario.cli import validate_paths
+
+    from .conftest import CONTRACTS_DIR, REPO_ROOT
+
+    pilot_ws = REPO_ROOT / "pilot" / "forconcept" / "pp-101"
+    lrd = load_doc(pilot_ws / "decisions" / "lrd-001.yaml")
+    assert lrd.kind == "loop-resume-decision"
+    assert lrd.data["subject"] == {"loop_id": "LOOP-101", "iteration": 1}
+    assert lrd.data["decided_at"] == "2026-08-12T04:01:21Z"
+    report = validate_paths([pilot_ws], CONTRACTS_DIR, bundle=True)
+    assert report.ok, [f"{f.code}: {f.message}" for f in report.errors]
