@@ -285,7 +285,7 @@ def _run_forconcept(args) -> int:
     try:
         contracts_dir = args.contracts or find_contracts_dir(Path.cwd())
         if args.fc_command == "resume":
-            resume_loop(
+            decision_ref = resume_loop(
                 args.workspace,
                 contracts_dir,
                 max_iterations=args.max_iterations,
@@ -295,7 +295,11 @@ def _run_forconcept(args) -> int:
             )
             print(
                 json.dumps(
-                    {"ok": True, "resumed": str(args.workspace)},
+                    {
+                        "ok": True,
+                        "resumed": str(args.workspace),
+                        "decision": decision_ref,
+                    },
                     ensure_ascii=False,
                 )
             )

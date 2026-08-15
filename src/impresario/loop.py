@@ -180,23 +180,107 @@ def resume_loop(
     actor: str,
     reason: str,
     now_iso: str,
-) -> None:
-    """Reopen a needs_human loop after a human addressed the blocker.
+) -> str:
+    """Reopen a needs_human loop; returns the consumed decision's ref.
 
-    Protocol (docs/semantics.md, «Состояние цикла»): CAS precondition on
-    stop.verdict == needs_human; immutable resumed evidence first,
-    identity-deduped on (loop_id, iteration) so a retry after a partial
-    failure never duplicates it and keeps the first attempt's `at`; then
-    validate-then-atomic-replace of loop.state with stop: null and a
-    widened budget. A failure between the steps keeps the waiting active;
-    after a successful replace a repeated resume is rejected by the CAS
-    precondition (stop is null).
+    Producer transition (spec 2026-08-15-loop-resume-decision, §protocol):
+    the whole consume runs under the workspace single-writer lock; the
+    recorded LoopResumeDecision — found active or created — is the source
+    of the transition, never the call arguments. Mismatching retry
+    arguments are refused. A failure between the steps keeps the waiting
+    active; a matching retry finishes the transition from the same
+    decision, preserving its decided_at/decided_by/reason.
     """
+    try:
+        with ws.single_writer_lock(workspace):
+            return _resume_locked(
+                workspace,
+                contracts_dir,
+                max_iterations=max_iterations,
+                actor=actor,
+                reason=reason,
+                now_iso=now_iso,
+            )
+    except ws.WorkspaceError as exc:
+        raise LoopError(str(exc)) from exc
+
+
+def _load_active_resume_decision(
+    workspace: Path,
+    validator: Draft202012Validator,
+    *,
+    loop_id: str,
+    iteration: int,
+) -> dict[str, Any] | None:
+    """The single active LRD for (loop_id, iteration), or None.
+
+    Fail-closed: a schema-invalid decision file, a self/cyclic/foreign
+    supersedes edge, or more than one active decision is a LoopError —
+    the runner refuses to guess which authorization to trust.
+    """
+    directory = ws.decisions_dir(workspace)
+    if not directory.is_dir():
+        return None
+    docs = [
+        d
+        for d in (load_doc(p) for p in sorted(directory.glob("*.yaml")))
+        if d.kind == "loop-resume-decision"
+    ]
+    same_identity: list[Doc] = []
+    for doc in docs:
+        errors = sorted(validator.iter_errors(doc.data), key=lambda e: list(e.path))
+        if errors:
+            raise LoopError(
+                f"{doc.path}: invalid loop-resume-decision: "
+                + "; ".join(e.message for e in errors)
+            )
+        subject = doc.data["subject"]
+        if subject["loop_id"] == loop_id and subject["iteration"] == iteration:
+            same_identity.append(doc)
+    by_id = {d.data["decision_id"]: d for d in same_identity}
+    superseded: set[str] = set()
+    for doc in same_identity:
+        raw = doc.data.get("supersedes")
+        if not isinstance(raw, str):
+            continue
+        target_id = raw.removeprefix("loop-resume-decision://")
+        if target_id == doc.data["decision_id"] or target_id not in by_id:
+            raise LoopError(
+                f"{doc.path}: inadmissible supersedes {raw} "
+                "(self, dangling or foreign identity)"
+            )
+        superseded.add(target_id)
+    active = [d for d in same_identity if d.data["decision_id"] not in superseded]
+    if len(active) > 1:
+        ids = ", ".join(sorted(d.data["decision_id"] for d in active))
+        raise LoopError(
+            f"more than one active resume decision for ({loop_id}, {iteration}): {ids}"
+        )
+    return active[0].data if active else None
+
+
+def _resume_locked(
+    workspace: Path,
+    contracts_dir: Path,
+    *,
+    max_iterations: int,
+    actor: str,
+    reason: str,
+    now_iso: str,
+) -> str:
+    """Find-or-create the active LRD, then consume it (spec §protocol).
+
+    Runs entirely inside `resume_loop`'s single-writer lock; the caller
+    also wraps `ws.WorkspaceError` into `LoopError` around this call.
+    """
+    validators = load_validators(contracts_dir)
+    state_validator = validators["loop-state"]
+    lrd_validator = validators["loop-resume-decision"]
+
     state = _read_state(workspace)
-    validator = load_validators(contracts_dir)["loop-state"]
     # Fail closed before touching any field: a legacy/corrupted loop.state
     # must surface as a typed error, not a KeyError deep in the protocol.
-    errors = _state_errors(state, validator)
+    errors = _state_errors(state, state_validator)
     if errors:
         raise LoopError(
             f"{state_path(workspace)}: refusing to resume from invalid "
@@ -212,7 +296,74 @@ def resume_loop(
         raise LoopError(
             f"resume requires a larger iteration budget than {state['max_iterations']}"
         )
+    loop_id = str(state["loop_id"])
     stop_iteration = int(stop["iteration"])
+
+    decision: dict[str, Any] | None = _load_active_resume_decision(
+        workspace, lrd_validator, loop_id=loop_id, iteration=stop_iteration
+    )
+    if decision is None:
+        existing = (
+            {
+                d.data["decision_id"]
+                for p in sorted(ws.decisions_dir(workspace).glob("*.yaml"))
+                if (d := load_doc(p)).kind == "loop-resume-decision"
+            }
+            if ws.decisions_dir(workspace).is_dir()
+            else set()
+        )
+        decision = {
+            "decision_id": ws.next_id("LRD", existing_ids=existing),
+            "subject": {"loop_id": loop_id, "iteration": stop_iteration},
+            "new_max_iterations": max_iterations,
+            "decided_by": {"kind": "human", "id": actor},
+            "decided_at": now_iso,
+            "reason": reason,
+        }
+        record_errors = sorted(
+            lrd_validator.iter_errors(decision), key=lambda e: list(e.path)
+        )
+        if record_errors:
+            raise LoopError(
+                "refusing to write invalid loop-resume-decision: "
+                + "; ".join(e.message for e in record_errors)
+            )
+        path = ws.decisions_dir(workspace) / f"{decision['decision_id'].lower()}.yaml"
+        ws.write_atomic(path, ws.dump_yaml(decision))
+    else:
+        mismatches = [
+            name
+            for name, got, want in (
+                (
+                    "max_iterations",
+                    decision["new_max_iterations"],
+                    max_iterations,
+                ),
+                ("actor", decision["decided_by"]["id"], actor),
+                ("reason", decision["reason"], reason),
+            )
+            if got != want
+        ]
+        if mismatches:
+            raise LoopError(
+                f"active decision {decision['decision_id']} does not match "
+                f"the call arguments ({', '.join(mismatches)}); repeat the "
+                "recorded arguments or supersede the decision"
+            )
+
+    # Re-read right before consumption: detects a change that happened
+    # before the transition started; the race itself is excluded by the
+    # single-writer lock held for the whole transition (spec §protocol 4).
+    state = _read_state(workspace)
+    stop = state.get("stop")
+    if (
+        not stop
+        or stop.get("verdict") != NEEDS_HUMAN
+        or int(stop["iteration"]) != stop_iteration
+    ):
+        raise LoopError("loop.state changed before consumption; refusing to resume")
+
+    decision_ref = f"loop-resume-decision://{decision['decision_id']}"
     already_resumed = any(
         e.get("event") == "resumed" and e.get("iteration") == stop_iteration
         for e in _read_trace(workspace)
@@ -232,14 +383,16 @@ def resume_loop(
                 "by": actor,
                 "reason": reason,
                 "from_verdict": NEEDS_HUMAN,
-                "max_iterations": max_iterations,
+                "max_iterations": int(decision["new_max_iterations"]),
                 "iteration": stop_iteration,
-                "at": now_iso,
+                "at": str(decision["decided_at"]),
+                "decision_ref": decision_ref,
             },
         )
-    state["max_iterations"] = max_iterations
+    state["max_iterations"] = int(decision["new_max_iterations"])
     state["stop"] = None
-    _write_state(workspace, state, validator)
+    _write_state(workspace, state, state_validator)
+    return decision_ref
 
 
 @dataclass
