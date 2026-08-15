@@ -57,7 +57,10 @@ def _decisions(workspace: Path) -> list[Doc]:
     directory = ws.decisions_dir(workspace)
     if not directory.is_dir():
         return []
-    return [load_doc(p) for p in sorted(directory.glob("*.yaml"))]
+    # decisions/ also holds loop-resume-decision records (resume
+    # authorizations); gate logic must only ever see gate decisions.
+    docs = (load_doc(p) for p in sorted(directory.glob("*.yaml")))
+    return [doc for doc in docs if doc.kind == "gate-decision"]
 
 
 def _active(decisions: list[Doc]) -> list[Doc]:
