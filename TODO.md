@@ -89,3 +89,9 @@
   урок M2: различать terminal verdict и retryable-инфраструктуру)
 - [x] Зарегистрировать репо в списке зеркал Robin — robin-runtime PR #44
   (после мержа: клонировать зеркало на VPS руками, CD этого не делает)
+- [x] **impresario#14 закрыт (сторона impresario)**: контракт
+  `loop-resume-decision/v1` — immutable авторизация resume ожидания
+  `(loop_id, iteration)`; producer/consumer-роли, single-writer lock на
+  consume-переходе, кросс-чеки `LRD_*`, бэкфилл LRD-001 для pp-101.
+  Спека: docs/superpowers/specs/2026-08-15-loop-resume-decision-design.md.
+  После мержа: ответить в issue #14 пин-коммитом (вендоринг kapelle)

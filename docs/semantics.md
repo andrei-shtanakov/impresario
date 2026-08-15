@@ -171,19 +171,38 @@ Immutable запись решения. Поля: `gate_id` (`qg4_backlog` | `qg5
 
 Запись файла — validate-then-atomic-replace (tool-enforced): невалидное
 состояние не пишется, файл остаётся в последнем консистентном виде.
-Resume — типизированный человеческий акт: CAS-предусловие
-(`stop.verdict = needs_human`), затем immutable evidence возобновления
-(`resumed`: by, reason, iteration, at) с dedup по identity
-`(loop_id, iteration)` — retry после частичного сбоя между evidence и
-replace не дублирует запись и сохраняет `at` первой попытки, — затем
-atomic-replace со `stop: null` и расширенным бюджетом. После успешного
-replace повторный resume отклоняется CAS-предусловием.
+Resume — типизированный человеческий акт с immutable авторизацией
+([loop-resume-decision/v1](../contracts/loop-resume-decision/v1/schema.json)):
+subject `(loop_id, iteration)`, `new_max_iterations`, `decided_by` (human),
+`reason`, опциональная цепочка `supersedes` (решение активно, если на него
+не ссылается семантически допустимое ребро `supersedes` другого
+schema-valid решения; самоссылка/цикл/чужая identity — нарушение и не
+деактивирует ничего). Роли различны: **producer** (reference CLI) находит
+активное решение либо создаёт новое; **consumer** (внешний backend)
+решения только принимает — отсутствие активного решения есть fail-closed
+отказ.
+
+Producer-переход целиком идёт под single-writer lock workspace:
+CAS-предусловие (`stop.verdict = needs_human`), найти-или-создать активный
+LoopResumeDecision (validate-then-atomic-write; ретрай с несовпадающими
+аргументами отклоняется — источник перехода всегда записанное решение, не
+аргументы вызова), перечитать состояние перед потреблением (обнаруживает
+изменение до начала перехода; саму гонку исключает lock), immutable
+trace-evidence `resumed` с `decision_ref` (dedup по identity), затем
+atomic-replace: `stop: null`, `max_iterations = new_max_iterations`.
+Файловый протокол корректен при single-writer; для внешнего backend/store
+настоящий атомарный CAS — обязанность его хранилища. После успешного
+replace повторный resume отклоняется CAS-предусловием. Окно «решение
+записано, state ещё `needs_human`» — валидное состояние bundle.
 
 Принадлежность бандлу — tool-enforced кросс-чеками (`LOOPSTATE_*`):
 `proposal_id` совпадает ровно с одним proposal; `idea_ref` и
 `idea_input_hash` — с идеей, от которой построен proposal;
 `exchange_log_id` резолвится в ExchangeLog того же proposal;
-`stop.iteration < max_iterations`.
+`stop.iteration < max_iterations`. Решения resume проверяются
+кросс-чеками `LRD_*`: `subject.loop_id` резолвится ровно в один
+loop.state; `new_max_iterations ≥ subject.iteration + 2`; допустимость
+рёбер `supersedes`; не более одного активного решения на identity.
 
 ## Классы enforcement
 

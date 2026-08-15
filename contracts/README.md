@@ -15,6 +15,7 @@
 | [exchange-log/v1](./exchange-log/v1/schema.json) | ExchangeLog |
 | [product-proposal/v1](./product-proposal/v1/schema.json) | ProductProposal (SSOT FSM) |
 | [gate-decision/v1](./gate-decision/v1/schema.json) | GateDecision |
+| [loop-resume-decision/v1](./loop-resume-decision/v1/schema.json) | LoopResumeDecision (immutable авторизация resume одного ожидания needs_human; docs/semantics.md «Состояние цикла») |
 | [run-record/v1](./run-record/v1/schema.json) | RunRecord (immutable запись материализации бэклога) |
 | [loop-state/v1](./loop-state/v1/schema.json) | LoopState (текущий projection состояния цикла researcher ↔ creator; JSON-файл `loop.state`, сигнал `needs_human` — docs/semantics.md) |
 
@@ -38,13 +39,15 @@
 | ExchangeLog | `XL-[0-9]{3,}` | `XL-001` |
 | ProductProposal | `PP-[0-9]{3,}` | `PP-001` |
 | GateDecision | `GD-[0-9]{3,}` | `GD-001` |
+| LoopResumeDecision | `LRD-[0-9]{3,}` | `LRD-001` |
 | Evaluation run | `RUN-[0-9]{3,}` | `RUN-001` |
 | Loop | `LOOP-[0-9]{3,}` | `LOOP-101` |
 
 Внутренние ссылки — URI со схемой по типу объекта; разрешимых ссылочных
-схем восемь: `idea://IDEA-001`, `assessment://ASMT-001`,
+схем девять: `idea://IDEA-001`, `assessment://ASMT-001`,
 `backlog://BL-portfolio`, `research-pack://RP-001`, `concept-draft://CD-001`,
-`exchange-log://XL-001`, `proposal://PP-001`, `gate-decision://GD-001`.
+`exchange-log://XL-001`, `proposal://PP-001`, `gate-decision://GD-001`,
+`loop-resume-decision://LRD-001`.
 
 Валидатор проверяет разрешимость внутренних ссылок в пределах bundle
 (fail-closed: висячая ссылка известной схемы — ошибка). Прогон
