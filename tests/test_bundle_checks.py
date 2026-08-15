@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -173,3 +174,113 @@ def test_superseded_approve_is_not_evidence(bundle: list[Doc]) -> None:
 def test_foreign_artifact_rejected(bundle: list[Doc]) -> None:
     broken = _mutate(bundle, "CD-002", proposal_ref="proposal://PP-999")
     assert "REF_FOREIGN" in _codes(broken)
+
+
+def _lrd(
+    decision_id: str,
+    *,
+    iteration: int = 1,
+    budget: int = 3,
+    supersedes: str | None = None,
+    loop_id: str = "LOOP-001",
+) -> Doc:
+    data: dict[str, Any] = {
+        "decision_id": decision_id,
+        "subject": {"loop_id": loop_id, "iteration": iteration},
+        "new_max_iterations": budget,
+        "decided_by": {"kind": "human", "id": "andrei"},
+        "decided_at": "2026-08-12T04:01:21Z",
+        "reason": "r",
+    }
+    if supersedes is not None:
+        data["supersedes"] = supersedes
+    return Doc(
+        path=Path(f"{decision_id.lower()}.yaml"),
+        kind="loop-resume-decision",
+        data=data,
+    )
+
+
+def _loop_state(loop_id: str = "LOOP-001") -> Doc:
+    return Doc(
+        path=Path("loop.state"),
+        kind="loop-state",
+        data={
+            "loop_id": loop_id,
+            "idea_ref": "idea://IDEA-001",
+            "idea_input_hash": "sha256:" + "0" * 64,
+            "proposal_id": "PP-001",
+            "exchange_log_id": "XL-001",
+            "max_iterations": 3,
+            "stop": None,
+        },
+    )
+
+
+def test_lrd_loop_unresolved(bundle: list[Doc]) -> None:
+    docs = [*bundle, _lrd("LRD-001", loop_id="LOOP-999")]
+    assert "LRD_LOOP" in _codes(docs)
+
+
+def test_lrd_budget_below_iteration_floor(bundle: list[Doc]) -> None:
+    docs = [*bundle, _loop_state(), _lrd("LRD-001", iteration=2, budget=3)]
+    assert "LRD_BUDGET" in _codes(docs)  # needs >= iteration + 2 = 4
+
+
+def test_lrd_self_supersedes(bundle: list[Doc]) -> None:
+    docs = [
+        *bundle,
+        _loop_state(),
+        _lrd("LRD-001", supersedes="loop-resume-decision://LRD-001"),
+    ]
+    codes = _codes(docs)
+    assert "LRD_SUPERSEDES" in codes
+    # недопустимое ребро не деактивирует единственное решение
+    assert "LRD_DUP" not in codes
+
+
+def test_lrd_supersedes_cycle(bundle: list[Doc]) -> None:
+    docs = [
+        *bundle,
+        _loop_state(),
+        _lrd("LRD-001", supersedes="loop-resume-decision://LRD-002"),
+        _lrd("LRD-002", supersedes="loop-resume-decision://LRD-001"),
+    ]
+    assert "LRD_SUPERSEDES" in _codes(docs)
+
+
+def test_lrd_foreign_identity_supersedes(bundle: list[Doc]) -> None:
+    docs = [
+        *bundle,
+        _loop_state(),
+        _lrd("LRD-001", iteration=0),
+        _lrd("LRD-002", iteration=1, supersedes="loop-resume-decision://LRD-001"),
+    ]
+    assert "LRD_SUPERSEDES" in _codes(docs)
+
+
+def test_lrd_duplicate_active(bundle: list[Doc]) -> None:
+    docs = [*bundle, _loop_state(), _lrd("LRD-001"), _lrd("LRD-002", budget=4)]
+    assert "LRD_DUP" in _codes(docs)
+
+
+def test_lrd_chain_single_active_is_clean(bundle: list[Doc]) -> None:
+    """A <- B <- C: активна только C, нарушений нет."""
+    docs = [
+        *bundle,
+        _loop_state(),
+        _lrd("LRD-001"),
+        _lrd("LRD-002", budget=4, supersedes="loop-resume-decision://LRD-001"),
+        _lrd("LRD-003", budget=5, supersedes="loop-resume-decision://LRD-002"),
+    ]
+    codes = _codes(docs)
+    assert not codes & {"LRD_SUPERSEDES", "LRD_DUP", "LRD_LOOP", "LRD_BUDGET"}
+
+
+def test_lrd_dangling_supersedes_is_ref_dangling(bundle: list[Doc]) -> None:
+    docs = [
+        *bundle,
+        _loop_state(),
+        _lrd("LRD-002", supersedes="loop-resume-decision://LRD-999"),
+    ]
+    assert "REF_DANGLING" in _codes(docs)
