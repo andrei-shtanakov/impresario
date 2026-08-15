@@ -713,3 +713,124 @@ def test_resume_respects_single_writer_lock(loop_ws: Path) -> None:
             now_iso=NOW,
         )
     (loop_ws / ".lock").unlink()
+
+
+def _write_lrd(
+    workspace: Path,
+    decision_id: str,
+    *,
+    iteration: int,
+    new_max_iterations: int,
+    actor: str = "andrei",
+    reason: str = "r",
+    supersedes: str | None = None,
+) -> None:
+    decisions = workspace / "decisions"
+    decisions.mkdir(exist_ok=True)
+    lines = [
+        f"decision_id: {decision_id}\n",
+        f"subject:\n  loop_id: LOOP-001\n  iteration: {iteration}\n",
+        f"new_max_iterations: {new_max_iterations}\n",
+        f"decided_by:\n  kind: human\n  id: {actor}\n",
+        f"decided_at: '{NOW}'\n",
+        f"reason: {reason}\n",
+    ]
+    if supersedes is not None:
+        lines.append(f"supersedes: {supersedes}\n")
+    (decisions / f"{decision_id.lower()}.yaml").write_text(
+        "".join(lines), encoding="utf-8"
+    )
+
+
+def test_resume_refuses_supersedes_cycle(loop_ws: Path) -> None:
+    """A mutual-supersedes cycle is a typed LoopError, fail-closed.
+
+    Both edges are inadmissible: neither may deactivate anything, so the
+    active-set computation must never even run — the runner refuses up
+    front, the same posture as the self/dangling/foreign branch.
+    """
+    from impresario.loop import LoopError, resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    _write_lrd(
+        loop_ws,
+        "LRD-001",
+        iteration=1,
+        new_max_iterations=3,
+        supersedes="loop-resume-decision://LRD-002",
+    )
+    _write_lrd(
+        loop_ws,
+        "LRD-002",
+        iteration=1,
+        new_max_iterations=3,
+        supersedes="loop-resume-decision://LRD-001",
+    )
+    with pytest.raises(LoopError, match="cycle"):
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"]["verdict"] == "needs_human"  # waiting stays active
+
+
+def test_resume_consumes_latest_of_a_superseded_chain(loop_ws: Path) -> None:
+    """LRD-002 supersedes LRD-001 (same identity): resume must consume LRD-002."""
+    from impresario.loop import resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    _write_lrd(loop_ws, "LRD-001", iteration=1, new_max_iterations=3)
+    _write_lrd(
+        loop_ws,
+        "LRD-002",
+        iteration=1,
+        new_max_iterations=4,
+        supersedes="loop-resume-decision://LRD-001",
+    )
+    ref = resume_loop(
+        loop_ws,
+        CONTRACTS_DIR,
+        max_iterations=4,
+        actor="andrei",
+        reason="r",
+        now_iso=NOW,
+    )
+    assert ref == "loop-resume-decision://LRD-002"
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["max_iterations"] == 4
+
+
+def test_cli_resume_prints_decision_ref(
+    loop_ws: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """`forconcept resume` prints ok=True and the consumed decision ref."""
+    from impresario.cli import main
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    code = main(
+        [
+            "forconcept",
+            "resume",
+            str(loop_ws),
+            "--max-iterations",
+            "3",
+            "--actor",
+            "andrei",
+            "--reason",
+            "r",
+            "--contracts",
+            str(CONTRACTS_DIR),
+        ]
+    )
+    out = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert out["ok"] is True
+    assert out["decision"] == "loop-resume-decision://LRD-001"

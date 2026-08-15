@@ -238,7 +238,7 @@ def _load_active_resume_decision(
         if subject["loop_id"] == loop_id and subject["iteration"] == iteration:
             same_identity.append(doc)
     by_id = {d.data["decision_id"]: d for d in same_identity}
-    superseded: set[str] = set()
+    edges: dict[str, str] = {}
     for doc in same_identity:
         raw = doc.data.get("supersedes")
         if not isinstance(raw, str):
@@ -249,7 +249,28 @@ def _load_active_resume_decision(
                 f"{doc.path}: inadmissible supersedes {raw} "
                 "(self, dangling or foreign identity)"
             )
-        superseded.add(target_id)
+        edges[doc.data["decision_id"]] = target_id
+
+    # Same cycle walk as checks.py's check_loop_resume_decisions: a cycle
+    # among same-identity decisions is inadmissible end to end, so it must
+    # never reach the superseded-set computation below (spec §admissible
+    # edges) — refuse fail-closed instead of silently emptying `active`.
+    in_cycle: set[str] = set()
+    for start in edges:
+        walked: list[str] = []
+        node = start
+        while node in edges and node not in walked:
+            walked.append(node)
+            node = edges[node]
+        if node in walked:
+            in_cycle.update(walked[walked.index(node) :])
+    if in_cycle:
+        ids = ", ".join(sorted(in_cycle))
+        raise LoopError(
+            f"({loop_id}, {iteration}): decisions {ids} are part of a supersedes cycle"
+        )
+
+    superseded = set(edges.values())
     active = [d for d in same_identity if d.data["decision_id"] not in superseded]
     if len(active) > 1:
         ids = ", ".join(sorted(d.data["decision_id"] for d in active))
