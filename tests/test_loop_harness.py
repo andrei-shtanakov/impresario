@@ -16,7 +16,17 @@ from .test_loop import (
     STUCK_SCRIPT,
     loop_ws,  # noqa: F401 - fixture reuse
 )
+from .test_loop import _cd as build_cd
+from .test_loop import _rp as build_rp
 from .test_loop import _run as run_scripted
+
+# Итерация 0 без открытых критичных gap/assumption: evaluate(iteration=0)
+# возвращает ready_for_business сразу, не дожидаясь итерации 1 — сценарий
+# для I-1 (регресс на «оставленный без ответа мнимый артефакт»).
+CLEAN_ITERATION0_SCRIPT = {
+    "researcher": {0: build_rp(1, 0, gap_open=False)},
+    "creator": {0: build_cd(1, 0, 1, assumption_open=False)},
+}
 
 PROMPTS_DIR = REPO_ROOT / "prompts"
 
@@ -544,3 +554,150 @@ def test_cli_forconcept_brief_terminal_marker_is_exit_2(loop_ws: Path, capsys) -
     assert code == 2
     assert out["ok"] is False
     assert "TERMINAL" in out["error"]
+
+
+def test_step_after_apply_pause_terminal_without_answer_is_not_phantom(
+    loop_ws: Path,  # noqa: F811 - pytest fixture reuse
+    tmp_path: Path,
+) -> None:
+    """I-1 regression: a workspace paused at apply:0 whose iteration 0 is
+    clean (evaluate ⇒ ready_for_business immediately, without ever
+    calling the iteration-1 researcher) must not make `step` report a
+    materialized RP-002 it never wrote.
+
+    Sequence: drive `run_loop` to a real `apply:0` pause with
+    CLEAN_ITERATION0_SCRIPT — RP-001/CD-001 with no open critical
+    gap/assumption, so `_apply_delta` for iteration 0 has already run
+    (delta applied) but evaluate has not. `derive_next_call` then reads
+    (researcher, 1) — same evidence the runner reads — and `brief`
+    renders that stage. `step` feeds a valid researcher:1 answer, but
+    the runner resumes straight from RP-001/CD-001 to the terminal
+    verdict at iteration 0 and never asks `SingleAnswerAgent` for
+    anything: rp-002.yaml must never exist, and the report must say so.
+    """
+    from impresario.agents import ScriptedAgent
+    from impresario.loop import run_loop
+    from impresario.loop_harness import derive_next_call, render_stage_brief
+
+    paused = run_loop(
+        loop_ws,
+        CONTRACTS_DIR,
+        ScriptedAgent(CLEAN_ITERATION0_SCRIPT),
+        now_iso=NOW,
+        stop_after="apply:0",
+    )
+    assert paused.verdict == "paused"
+
+    assert derive_next_call(loop_ws, CONTRACTS_DIR) == ("researcher", 1)
+    r = render_stage_brief(loop_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    assert r["role"] == "researcher" and r["iteration"] == 1
+
+    ans = _write_yaml(tmp_path / "ra1.yaml", RA_CONTENT_IT1)
+    out = _step(loop_ws, Path(r["path"]), ans)
+
+    assert not (loop_ws / "rp-002.yaml").exists()
+    assert out["artifact"] is None
+    assert out["noop"] is True
+    assert out["ok"] is True
+    assert out["runner"]["verdict"] == "ready_for_business"
+
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"]["verdict"] == "ready_for_business"
+
+
+def test_step_respects_single_writer_lock(loop_ws: Path, tmp_path: Path) -> None:  # noqa: F811 - pytest fixture reuse
+    """I-2 regression: step is read-check-write over the workspace, same
+    as resume_loop/ingest_pairs — it must take the same lock (mirrors
+    test_resume_respects_single_writer_lock)."""
+    from impresario.harness import HarnessError
+    from impresario.loop_harness import render_stage_brief
+
+    r1 = render_stage_brief(loop_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    ans = _write_yaml(tmp_path / "ra.yaml", RA_CONTENT_IT0)
+    (loop_ws / ".lock").touch()
+    with pytest.raises(HarnessError, match="locked"):
+        _step(loop_ws, Path(r1["path"]), ans)
+    (loop_ws / ".lock").unlink()
+
+
+def test_step_reports_failed_verdict_as_not_ok(
+    loop_ws: Path,  # noqa: F811 - pytest fixture reuse
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """I-3 regression: a runner verdict of `failed` must not become
+    `ok: true` in the step report.
+
+    Cheapest path (reviewer-sanctioned alternative to staging a genuine
+    `_apply_delta` proposal-schema rejection at a creator step):
+    monkeypatch `impresario.loop.run_loop` — `step_loop` re-imports it
+    by name on every call, so this is visible to the code under test —
+    to run for real and then relabel the result's verdict as `failed`,
+    isolating the report-mapping under test from how a real failure is
+    produced.
+    """
+    import dataclasses
+
+    import impresario.loop as loop_mod
+    from impresario.loop_harness import render_stage_brief
+
+    original_run_loop = loop_mod.run_loop
+
+    def _fake_run_loop(*args: object, **kwargs: object):
+        result = original_run_loop(*args, **kwargs)  # type: ignore[arg-type]
+        return dataclasses.replace(result, verdict="failed")
+
+    monkeypatch.setattr(loop_mod, "run_loop", _fake_run_loop)
+
+    r1 = render_stage_brief(loop_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    ans = _write_yaml(tmp_path / "ra.yaml", RA_CONTENT_IT0)
+    out = _step(loop_ws, Path(r1["path"]), ans)
+
+    assert out["runner"]["verdict"] == "failed"
+    assert out["ok"] is False
+
+
+def test_cli_forconcept_step_failed_verdict_is_exit_1(
+    loop_ws: Path,  # noqa: F811 - pytest fixture reuse
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys,
+) -> None:
+    """I-3 regression through the CLI: `forconcept step`'s exit code must
+    mirror `forconcept run`'s (`ok`/exit reflect verdict != failed), not
+    the unconditional `return 0` the step branch used before this fix."""
+    import dataclasses
+
+    import impresario.loop as loop_mod
+    from impresario.cli import main
+    from impresario.loop_harness import render_stage_brief
+
+    original_run_loop = loop_mod.run_loop
+
+    def _fake_run_loop(*args: object, **kwargs: object):
+        result = original_run_loop(*args, **kwargs)  # type: ignore[arg-type]
+        return dataclasses.replace(result, verdict="failed")
+
+    monkeypatch.setattr(loop_mod, "run_loop", _fake_run_loop)
+
+    r1 = render_stage_brief(loop_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    ans = _write_yaml(tmp_path / "ra.yaml", RA_CONTENT_IT0)
+    code = main(
+        [
+            "forconcept",
+            "step",
+            str(loop_ws),
+            "--brief",
+            r1["path"],
+            "--answer",
+            str(ans),
+            "--actor",
+            "claude",
+            "--model",
+            "claude-fable-5",
+        ]
+    )
+    out = json.loads(capsys.readouterr().out)
+    assert code == 1
+    assert out["ok"] is False
+    assert out["runner"]["verdict"] == "failed"

@@ -133,8 +133,13 @@ workspace продвинулся иначе, — no-op, не `STALE_BRIEF`), з�
 всех входов брифа (`loop_id`, `iteration`, `role`, хэши idea/proposal/
 history), затем schema ответа, затем пре-валидация полностью собранного
 артефакта — и только тогда раннер (единственный исполнитель loop-семантики)
-делает один шаг, останавливаясь на границе `research:N` (researcher) или
-`iteration:N` (creator).
+делает один шаг под single-writer lock workspace, останавливаясь на границе
+`research:N` (researcher) или `iteration:N` (creator). Раннер может
+дойти до терминального вердикта прямо из уже персистентных RP+CD
+(workspace, ранее остановленный на `apply:N`/`evaluate:N`), не спросив
+исполнителя ни разу; тогда `step` не выдумывает материализацию —
+отчёт `{"artifact": null, "noop": true, "runner": {...}}`, и `ok`
+отчёта — `verdict != "failed"`, как и exit code `forconcept run`.
 
 ## Промпт-харнесс оценщика (prioritizer/v1)
 
@@ -221,7 +226,7 @@ single-writer lock.
 ## Разработка
 
 ```bash
-uv run pytest          # 252 теста: fixtures + кросс-чеки + CLI
+uv run pytest          # 257 тестов: fixtures + кросс-чеки + CLI
 uv run ruff format . && uv run ruff check .
 uv run pyrefly check
 ```

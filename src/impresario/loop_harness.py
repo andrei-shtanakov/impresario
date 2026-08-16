@@ -99,10 +99,19 @@ def derive_next_call(workspace: Path, contracts_dir: Path) -> tuple[str, int]:
 
 
 # Примечание к деривации: случай «оба артефакта есть, delta применена, но
-# вердикт итерации не вынесен» в файловом раннере не существует отдельно
-# от «вынесен continue» (evaluate и запись вердикта — один прогон
-# run_loop), поэтому ветка после applied-проверки продолжает цикл —
-# continue-итерация означает следующий researcher.
+# вердикт итерации не вынесен» СУЩЕСТВУЕТ отдельно от «вынесен continue» —
+# это ровно пауза раннера на границе apply:N/evaluate:N (loop.py) или
+# крэш в этом окне: RP+CD+применённая delta уже на диске, а evaluate ещё
+# не прогнан. derive_next_call не может отличить этот случай от «continue
+# для итерации N уже вынесен» — оба читаются как «следующий researcher»,
+# потому что evaluate и запись вердикта детерминированы и идемпотентны:
+# ветка после applied-проверки продолжает цикл, не разбирая, откуда взялся
+# следующий шаг. Из-за этого step_loop не может доверять production
+# рендеру brief'а «раннер обязательно вызовет агента» — см. step 6:
+# раннер может уйти в терминальный вердикт по уже имеющимся RP+CD, ни разу
+# не спросив SingleAnswerAgent, и step обязан заметить это по факту (не
+# по предположению) и не сообщить о материализации артефакта, которого
+# нет на диске.
 
 
 def history_entries(workspace: Path) -> list[dict[str, Any]]:
@@ -292,12 +301,47 @@ def step_loop(
     """Нормативный протокол шага (спека): brief → идемпотентность →
     freshness → answer → пре-валидация сборки → раннер.
 
+    Read-check-write over the workspace: the whole sequence runs under
+    the same single-writer lock as `resume_loop` (loop.py) and the
+    prioritizer ingest (harness.py) — a concurrent writer on the same
+    workspace fails fast instead of racing this step's freshness check
+    against another process's mutation.
+    """
+    try:
+        with ws.single_writer_lock(workspace):
+            return _step_loop_locked(
+                workspace,
+                contracts_dir,
+                prompts_dir,
+                brief_path=brief_path,
+                answer_path=answer_path,
+                actor=actor,
+                model=model,
+                now_iso=now_iso,
+            )
+    except ws.WorkspaceError as exc:
+        raise HarnessError(str(exc)) from exc
+
+
+def _step_loop_locked(
+    workspace: Path,
+    contracts_dir: Path,
+    prompts_dir: Path,
+    *,
+    brief_path: Path,
+    answer_path: Path,
+    actor: str,
+    model: str,
+    now_iso: str,
+) -> dict[str, Any]:
+    """Body of `step_loop`, run under the workspace single-writer lock.
+
     `prompts_dir` is accepted for interface symmetry with the brief
     render (`forconcept step` takes the same flags as `forconcept
     brief`); step itself never re-renders a prompt pack.
     """
     from .agents import SingleAnswerAgent
-    from .loop import run_loop
+    from .loop import FAILED, run_loop
 
     validators = load_validators(contracts_dir)
 
@@ -439,12 +483,36 @@ def step_loop(
         now_iso=now_iso,
         stop_after=stop_after,
     )
+    runner_report = {"verdict": result.verdict, "iteration": result.iteration}
+
+    # The runner is the sole executor: it may resume straight to a
+    # terminal verdict from RP+CD already on disk (a workspace paused at
+    # apply:N/evaluate:N, or crashed in that window — see the note above
+    # derive_next_call) WITHOUT ever calling SingleAnswerAgent.produce, so
+    # `artifact` was never persisted. Verify materialization by the same
+    # lookup as the idempotency step (2) — provenance.brief_id on disk —
+    # rather than assuming run_loop consumed the answer.
+    persisted = next(
+        (
+            d
+            for d in _docs_of_kind(workspace, kind)
+            if (d.data.get("provenance") or {}).get("brief_id") == brief["brief_id"]
+        ),
+        None,
+    )
+    if persisted is None:
+        return {
+            "ok": result.verdict != FAILED,
+            "noop": True,
+            "artifact": None,
+            "runner": runner_report,
+        }
     return {
-        "ok": True,
+        "ok": result.verdict != FAILED,
         "noop": False,
         "artifact": {
-            "id": artifact["id"],
-            "path": str(workspace / f"{artifact['id'].lower()}.yaml"),
+            "id": persisted.data["id"],
+            "path": str(persisted.path),
         },
-        "runner": {"verdict": result.verdict, "iteration": result.iteration},
+        "runner": runner_report,
     }

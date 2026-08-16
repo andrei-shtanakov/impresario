@@ -349,7 +349,7 @@ def _run_forconcept(args) -> int:
                 now_iso=now,
             )
             print(json.dumps(report, ensure_ascii=False))
-            return 0
+            return 0 if report.get("ok") else 1
         if args.fc_command == "resume":
             decision_ref = resume_loop(
                 args.workspace,
