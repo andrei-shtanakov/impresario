@@ -185,7 +185,7 @@ single-writer lock.
 ## Разработка
 
 ```bash
-uv run pytest          # 207 тестов: fixtures + кросс-чеки + CLI
+uv run pytest          # 210 тестов: fixtures + кросс-чеки + CLI
 uv run ruff format . && uv run ruff check .
 uv run pyrefly check
 ```

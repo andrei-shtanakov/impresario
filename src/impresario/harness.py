@@ -11,6 +11,7 @@ immutable AxisAssessments, authoring every bookkeeping field itself
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 from typing import Any
 
@@ -89,10 +90,20 @@ def build_brief(
     matches an external `sha256sum` regardless of newline translation
     performed while decoding the text used for prompt substitution.
     """
-    prompt = (
-        prompt_template.replace("{idea}", idea_text)
-        .replace("{strategy}", strategy_text)
-        .replace("{standards}", standards_text)
+    # Single-pass substitution: re.sub's replacement text is never
+    # re-scanned for further placeholders, so a literal "{strategy}" (or
+    # "{idea}"/"{standards}") inside idea_text/strategy_text/standards_text
+    # survives verbatim instead of being expanded by a later chained
+    # .replace() call.
+    substitutions = {
+        "idea": idea_text,
+        "strategy": strategy_text,
+        "standards": standards_text,
+    }
+    prompt = re.sub(
+        r"\{(idea|strategy|standards)\}",
+        lambda m: substitutions[m.group(1)],
+        prompt_template,
     )
     fields = {
         "idea_ref": f"idea://{idea_doc['id']}",
@@ -285,6 +296,16 @@ def _ingest_locked(
     for d in existing_docs:
         if d.kind != "axis-assessment":
             continue
+        # Fail-closed on corrupted existing state (cf. resume refusing an
+        # invalid loop-state): idempotency/conflict detection and next_id
+        # below trust existing_docs/existing_by_key, so a schema-invalid
+        # existing assessment must stop ingest, not be silently used.
+        findings = check_schema(d, validators)
+        if findings:
+            raise HarnessError(
+                "refusing to ingest against an invalid existing assessment: "
+                f"{d.path}: " + "; ".join(f.message for f in findings)
+            )
         brief_id = (d.data.get("provenance") or {}).get("brief_id")
         if brief_id is None:
             # manual-v0 legacy: assessments authored before this harness

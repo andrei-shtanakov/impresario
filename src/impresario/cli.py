@@ -396,6 +396,7 @@ def _run_assess(args) -> int:
         OSError,
         UnknownContractError,
         yaml.YAMLError,
+        UnicodeDecodeError,
     ) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
         return EXIT_USAGE

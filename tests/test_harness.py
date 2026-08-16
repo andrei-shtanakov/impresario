@@ -128,6 +128,40 @@ def test_render_is_deterministic_and_valid(assess_ws: Path) -> None:
     assert check_schema(doc, validators) == []
 
 
+def test_render_substitution_is_single_pass(assess_ws: Path) -> None:
+    """A literal "{strategy}" inside idea_text must survive verbatim, not
+    be re-scanned and expanded by a later .replace() pass."""
+    from impresario.harness import render_briefs
+
+    idea_path = assess_ws / "ideas" / "idea-001.yaml"
+    tricky = dict(IDEA_DOC, hypothesis="literal token {strategy} in text")
+    idea_path.write_text(
+        yaml.safe_dump(tricky, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    report = render_briefs(assess_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    assert report["ok"] and len(report["briefs"]) == 1
+    doc = load_doc(Path(report["briefs"][0]["path"]))
+    prompt = doc.data["prompt"]
+
+    # literal survives verbatim exactly once, inside the idea section
+    assert prompt.count("literal token {strategy} in text") == 1
+    # real strategy text still substituted at its own placeholder site
+    assert "G-1: цель." in prompt
+
+    validators = load_validators(CONTRACTS_DIR)
+    from impresario.schemas import check_schema
+
+    assert check_schema(doc, validators) == []
+
+    # determinism: same content, unchanged bytes on re-render
+    path = Path(report["briefs"][0]["path"])
+    bytes1 = path.read_bytes()
+    report2 = render_briefs(assess_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    assert report2["briefs"] == report["briefs"]
+    assert path.read_bytes() == bytes1
+
+
 def test_render_new_id_on_idea_change_keeps_old_brief(assess_ws: Path) -> None:
     from impresario.harness import render_briefs
 
@@ -503,6 +537,71 @@ def test_cli_assess_ingest_unknown_schema_answer_is_exit_2(
 
     answer_path = tmp_path / "no-schema-version.yaml"
     answer_path.write_text("fit_strategy: 3\n", encoding="utf-8")
+    code = main(
+        [
+            "assess",
+            "ingest",
+            str(assess_ws),
+            "--run-id",
+            "RUN-100",
+            "--actor",
+            "claude",
+            "--model",
+            "claude-fable-5",
+            "--brief",
+            out["briefs"][0]["path"],
+            "--answer",
+            str(answer_path),
+        ]
+    )
+    out2 = jsonlib.loads(capsys.readouterr().out)
+    assert code == 2
+    assert out2["ok"] is False
+
+
+def test_ingest_fails_closed_on_invalid_existing_assessment(
+    assess_ws: Path, tmp_path: Path
+) -> None:
+    """Phase 1 must refuse to build ingest state against a schema-invalid
+    existing assessment (repo's fail-closed idiom), rather than silently
+    trusting corrupted state for idempotency/conflict detection and
+    next_id."""
+    from impresario.harness import HarnessError, render_briefs
+
+    (assess_ws / "assessments").mkdir(parents=True)
+    corrupted = _hand_written_assessment("ASMT-001")
+    corrupted["confidence"] = "wrong"  # not in enum [high, medium, low]
+    (assess_ws / "assessments" / "asmt-001.yaml").write_text(
+        yaml.safe_dump(corrupted, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+
+    report = render_briefs(assess_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    brief_path = Path(report["briefs"][0]["path"])
+    answer_path = tmp_path / "a.yaml"
+    answer_path.write_text(
+        yaml.safe_dump(_good_answer(), allow_unicode=True), encoding="utf-8"
+    )
+    with pytest.raises(HarnessError, match="asmt-001.yaml"):
+        _ingest(assess_ws, [(brief_path, answer_path)])
+    assert list((assess_ws / "assessments").glob("*.yaml")) == [
+        assess_ws / "assessments" / "asmt-001.yaml"
+    ]
+
+
+def test_cli_assess_ingest_invalid_utf8_answer_is_exit_2(
+    assess_ws: Path, tmp_path: Path, capsys
+) -> None:
+    import json as jsonlib
+
+    from impresario.cli import main
+
+    report = main(["assess", "render", str(assess_ws)])
+    assert report == 0
+    out = jsonlib.loads(capsys.readouterr().out)
+
+    answer_path = tmp_path / "not-utf8.yaml"
+    answer_path.write_bytes(b"\xff\xfe broken")
     code = main(
         [
             "assess",
