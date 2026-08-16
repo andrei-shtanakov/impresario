@@ -834,3 +834,67 @@ def test_cli_resume_prints_decision_ref(
     assert code == 0
     assert out["ok"] is True
     assert out["decision"] == "loop-resume-decision://LRD-001"
+
+
+def test_resume_ignores_unrelated_invalid_lrd(loop_ws: Path) -> None:
+    """Невалидный LRD чужой identity не блокирует resume этого ожидания.
+
+    Его валидность — дело bundle-валидатора; consume-путь проверяет
+    только решения, способные авторизовать текущее ожидание.
+    """
+    from impresario.loop import resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    decisions = loop_ws / "decisions"
+    decisions.mkdir(exist_ok=True)
+    (decisions / "lrd-009.yaml").write_text(
+        "decision_id: LRD-009\n"
+        "subject:\n  loop_id: LOOP-999\n  iteration: 0\n"
+        "new_max_iterations: 2\n"
+        "decided_by:\n  kind: agent\n  id: bot\n"  # не human — schema fail
+        f"decided_at: '{NOW}'\n"
+        "reason: r\n",
+        encoding="utf-8",
+    )
+    ref = resume_loop(
+        loop_ws,
+        CONTRACTS_DIR,
+        max_iterations=3,
+        actor="andrei",
+        reason="r",
+        now_iso=NOW,
+    )
+    assert ref == "loop-resume-decision://LRD-010"  # LRD-009 занят чужим
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"] is None
+    assert state["max_iterations"] == 3
+
+
+def test_resume_blocks_on_unreadable_subject_lrd(loop_ws: Path) -> None:
+    """LRD без читаемого subject нельзя доказать чужим — fail-closed."""
+    from impresario.loop import LoopError, resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    decisions = loop_ws / "decisions"
+    decisions.mkdir(exist_ok=True)
+    (decisions / "lrd-009.yaml").write_text(
+        "decision_id: LRD-009\n"
+        "new_max_iterations: 2\n"
+        "decided_by:\n  kind: human\n  id: andrei\n"
+        f"decided_at: '{NOW}'\n"
+        "reason: r\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(LoopError, match="invalid loop-resume-decision"):
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"]["verdict"] == "needs_human"

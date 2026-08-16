@@ -216,7 +216,12 @@ def _load_active_resume_decision(
 
     Fail-closed: a schema-invalid decision file, a self/cyclic/foreign
     supersedes edge, or more than one active decision is a LoopError —
-    the runner refuses to guess which authorization to trust.
+    the runner refuses to guess which authorization to trust. Scoped to
+    this wait: a decision whose subject determinately names a DIFFERENT
+    identity cannot authorize it, so its validity is the bundle
+    validator's business, never a reason to block this resume. A doc
+    whose subject cannot be read stays fail-closed — it cannot be proven
+    unrelated.
     """
     directory = ws.decisions_dir(workspace)
     if not directory.is_dir():
@@ -228,15 +233,24 @@ def _load_active_resume_decision(
     ]
     same_identity: list[Doc] = []
     for doc in docs:
+        subject = doc.data.get("subject")
+        if isinstance(subject, dict):
+            doc_loop = subject.get("loop_id")
+            doc_iter = subject.get("iteration")
+            determinately_foreign = (
+                isinstance(doc_loop, str)
+                and isinstance(doc_iter, int)
+                and (doc_loop, doc_iter) != (loop_id, iteration)
+            )
+            if determinately_foreign:
+                continue
         errors = sorted(validator.iter_errors(doc.data), key=lambda e: list(e.path))
         if errors:
             raise LoopError(
                 f"{doc.path}: invalid loop-resume-decision: "
                 + "; ".join(e.message for e in errors)
             )
-        subject = doc.data["subject"]
-        if subject["loop_id"] == loop_id and subject["iteration"] == iteration:
-            same_identity.append(doc)
+        same_identity.append(doc)
     by_id = {d.data["decision_id"]: d for d in same_identity}
     edges: dict[str, str] = {}
     for doc in same_identity:
@@ -401,8 +415,11 @@ def _resume_locked(
             ctx,
             {
                 "event": "resumed",
-                "by": actor,
-                "reason": reason,
+                # Strictly decision-derived (the LRD is the SSOT of the
+                # transition); the call arguments were already verified to
+                # match the recorded decision above.
+                "by": str(decision["decided_by"]["id"]),
+                "reason": str(decision["reason"]),
                 "from_verdict": NEEDS_HUMAN,
                 "max_iterations": int(decision["new_max_iterations"]),
                 "iteration": stop_iteration,
