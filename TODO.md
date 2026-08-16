@@ -94,4 +94,6 @@
   `(loop_id, iteration)`; producer/consumer-роли, single-writer lock на
   consume-переходе, кросс-чеки `LRD_*`, бэкфилл LRD-001 для pp-101.
   Спека: docs/superpowers/specs/2026-08-15-loop-resume-decision-design.md.
-  После мержа: ответить в issue #14 пин-коммитом (вендоринг kapelle)
+  **Влит 2026-08-16** (PR #16, merge `8082e53`, оба замечания Copilot
+  отработаны); follow-up выполнен: ответ в impresario#14 с пин-коммитом
+  `8082e53` и чек-листом консьюмера — вендоринг за kapelle
