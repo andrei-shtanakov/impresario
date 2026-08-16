@@ -64,3 +64,28 @@ def test_detect_kind_gd_prefix_stays_gate_decision() -> None:
     from impresario.loader import detect_kind
 
     assert detect_kind({"decision_id": "GD-001"}) == "gate-decision"
+
+
+def test_detect_kind_evaluation_brief() -> None:
+    from impresario.loader import detect_kind
+
+    assert detect_kind({"brief_id": "BRF-0123456789ab"}) == "evaluation-brief"
+
+
+def test_detect_kind_assessment_answer() -> None:
+    from impresario.loader import detect_kind
+
+    assert (
+        detect_kind({"schema_version": "assessment-answer/v1"}) == "assessment-answer"
+    )
+
+
+def test_answer_without_discriminator_is_unknown_kind() -> None:
+    from impresario.loader import UnknownContractError, detect_kind
+
+    answer_without = {"fit_strategy": 5, "rationale": {}}
+    with pytest.raises(UnknownContractError):
+        detect_kind(answer_without)
+
+    with pytest.raises(UnknownContractError):
+        detect_kind({"schema_version": "assessment-answer/v0"})

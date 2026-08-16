@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:impresario:contract:evaluation-brief:v1",
+  "title": "EvaluationBrief",
+  "description": "Handoff render → executor промпт-харнесса оценщика (docs/semantics.md, docs/superpowers/specs/2026-08-16-prioritizer-prompt-harness-design.md). Immutable evidence: brief_id контент-адресован (канонический хеш identity-полей, включая prompt_hash), одинаковые входы дают байт-в-байт одинаковый brief; timestamp и случайных ID нет по построению.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "brief_id",
+    "idea_ref",
+    "input_hash",
+    "prompt_version",
+    "prompt_pack_hash",
+    "policy_version",
+    "strategy_hash",
+    "standards_hash",
+    "prompt_hash",
+    "prompt"
+  ],
+  "properties": {
+    "brief_id": {
+      "type": "string",
+      "pattern": "^BRF-[0-9a-f]{12}$"
+    },
+    "idea_ref": {
+      "type": "string",
+      "pattern": "^idea://IDEA-[0-9]{3,}$"
+    },
+    "input_hash": {
+      "$ref": "#/$defs/sha256"
+    },
+    "prompt_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prompt_pack_hash": {
+      "$ref": "#/$defs/sha256"
+    },
+    "policy_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "strategy_hash": {
+      "$ref": "#/$defs/sha256"
+    },
+    "standards_hash": {
+      "$ref": "#/$defs/sha256"
+    },
+    "prompt_hash": {
+      "$ref": "#/$defs/sha256"
+    },
+    "prompt": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

@@ -45,7 +45,14 @@
   Exempt-часть решения позже скорректирована на стадии 6 — реестр пуст,
   запись 07-26 была отменена 07-30 (см. friction №16); контракт
   семантики и место реестра не менялись
-- [ ] M2-хвост: промпт-харнесс оценщика/агентов (уйти от manual-v0)
+- [x] M2-хвост, prioritizer-половина: промпт-харнесс оценщика (уйти от
+  manual-v0) — `impresario assess render|ingest`, immutable
+  EvaluationBrief, двухфазный идемпотентный ingest AxisAssessment.
+  Спека: docs/superpowers/specs/2026-08-16-prioritizer-prompt-harness-design.md.
+  Живой RUN-003 (переоценка pilot прошедшим харнессом) — отдельный
+  человеческий акт после мержа
+- [ ] M2-хвост, researcher/creator-харнесс: промпт-харнесс агентов цикла
+  (тот же переход от manual к воспроизводимому prompt_version)
 
 ## M4 — QG-5 и handoff
 

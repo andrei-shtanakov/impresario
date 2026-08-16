@@ -21,6 +21,8 @@ CONTRACT_KINDS: tuple[str, ...] = (
     "loop-resume-decision",
     "run-record",
     "loop-state",
+    "evaluation-brief",
+    "assessment-answer",
 )
 
 _ID_PREFIX_TO_KIND: dict[str, str] = {
@@ -65,6 +67,10 @@ _PlainDateLoader.add_constructor(
 
 def detect_kind(data: dict[str, Any]) -> str:
     """Detect the contract kind of a document from its identifying fields."""
+    if "brief_id" in data:
+        return "evaluation-brief"
+    if data.get("schema_version") == "assessment-answer/v1":
+        return "assessment-answer"
     if "loop_id" in data:
         return "loop-state"
     if "assessment_id" in data:
@@ -84,8 +90,8 @@ def detect_kind(data: dict[str, Any]) -> str:
         if kind is not None:
             return kind
     raise UnknownContractError(
-        "cannot detect contract kind: no assessment_id/proposal_id/decision_id "
-        "and no recognizable id prefix"
+        "cannot detect contract kind: no brief_id/schema_version/assessment_id/"
+        "proposal_id/decision_id and no recognizable id prefix"
     )
 
 

@@ -101,6 +101,27 @@ assumptions/gaps и запросов → `ready_for_business`; есть и ос�
 [pilot/forconcept/](./pilot/forconcept/pp-101/), скрипт —
 `pp-101.script`.
 
+## Промпт-харнесс оценщика (prioritizer/v1)
+
+Уходит от `prompt_version: prioritizer/manual-v0` (friction №5): render
+детерминированно собирает immutable EvaluationBrief из карточки идеи +
+промпт-пака + стратегии/стандартов; impresario сам LLM не вызывает —
+между двумя командами стоит внешний исполнитель. Спека:
+[docs/superpowers/specs/2026-08-16-prioritizer-prompt-harness-design.md](./docs/superpowers/specs/2026-08-16-prioritizer-prompt-harness-design.md).
+
+```bash
+# детерминированный render: по одному EvaluationBrief на карточку идеи
+# (--idea сузит до одной; повтор на неизменных входах — байтовый no-op)
+uv run impresario assess render <ws> [--idea IDEA-101]
+
+# < внешний LLM-вызов по brief.prompt, ответ — assessment-answer/v1 >
+
+# двухфазный ingest: валидирует все пары brief+answer, затем пишет весь набор
+uv run impresario assess ingest <ws> --run-id RUN-100 --actor <id> \
+    --model <model> --brief <brief.yaml> --answer <answer.yaml> \
+    [--brief ... --answer ...]
+```
+
 ## QG-5: typed гейты (Gate A / Gate B)
 
 Immutable human-решения поверх FSM; readiness — вычисляемое предусловие
@@ -147,6 +168,8 @@ single-writer lock.
 | `LRD_BUDGET` | `new_max_iterations` решения resume меньше `subject.iteration + 2` |
 | `LRD_SUPERSEDES` | Недопустимое ребро `supersedes` (самоссылка, цикл, чужая identity) |
 | `LRD_DUP` | Больше одного активного решения resume на одно ожидание |
+| `BRIEF_IDENTITY` | `prompt_hash` или `brief_id` брифа не совпадают с пересчётом |
+| `ASSESS_BRIEF` | Цепь assessment → brief нарушена: висячий `provenance.brief_id` или расходящиеся хеши/версии |
 
 Отчёт — JSON в stdout (`ok`, `checked`, `errors[]`) при любом исходе.
 Сравнение времён решений — парсинг RFC 3339, не лексикографика.
@@ -162,7 +185,7 @@ single-writer lock.
 ## Разработка
 
 ```bash
-uv run pytest          # 159 тестов: fixtures + кросс-чеки + CLI
+uv run pytest          # 210 тестов: fixtures + кросс-чеки + CLI
 uv run ruff format . && uv run ruff check .
 uv run pyrefly check
 ```

@@ -46,7 +46,23 @@
     },
     "confidence": { "enum": ["high", "medium", "low"] },
     "evaluator": { "$ref": "#/$defs/actor" },
-    "evaluated_at": { "$ref": "#/$defs/timestamp" }
+    "evaluated_at": { "$ref": "#/$defs/timestamp" },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "brief_id",
+        "prompt_pack_hash",
+        "strategy_hash",
+        "standards_hash"
+      ],
+      "properties": {
+        "brief_id": { "type": "string", "pattern": "^BRF-[0-9a-f]{12}$" },
+        "prompt_pack_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "strategy_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "standards_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    }
   },
   "allOf": [
     {

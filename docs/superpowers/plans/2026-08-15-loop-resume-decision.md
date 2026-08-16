@@ -66,8 +66,7 @@ def test_detect_kind_lrd_prefix() -> None:
     from impresario.loader import detect_kind
 
     assert (
-        detect_kind({"decision_id": "LRD-001", "subject": {}})
-        == "loop-resume-decision"
+        detect_kind({"decision_id": "LRD-001", "subject": {}}) == "loop-resume-decision"
     )
 
 
@@ -354,8 +353,14 @@ git commit -m "fix: гейтовая логика фильтрует decisions/ 
 не зависят от файлов):
 
 ```python
-def _lrd(decision_id: str, *, iteration: int = 1, budget: int = 3,
-         supersedes: str | None = None, loop_id: str = "LOOP-001") -> Doc:
+def _lrd(
+    decision_id: str,
+    *,
+    iteration: int = 1,
+    budget: int = 3,
+    supersedes: str | None = None,
+    loop_id: str = "LOOP-001",
+) -> Doc:
     data: dict[str, Any] = {
         "decision_id": decision_id,
         "subject": {"loop_id": loop_id, "iteration": iteration},
@@ -426,8 +431,7 @@ def test_lrd_foreign_identity_supersedes(bundle: list[Doc]) -> None:
         *bundle,
         _loop_state(),
         _lrd("LRD-001", iteration=0),
-        _lrd("LRD-002", iteration=1,
-             supersedes="loop-resume-decision://LRD-001"),
+        _lrd("LRD-002", iteration=1, supersedes="loop-resume-decision://LRD-001"),
     ]
     assert "LRD_SUPERSEDES" in _codes(docs)
 
@@ -667,9 +671,9 @@ def test_resume_writes_and_consumes_lrd(loop_ws: Path) -> None:
     assert report.ok, [f"{f.code}: {f.message}" for f in report.errors]
 
 
-def test_resume_retry_mismatched_args_is_refused(loop_ws: Path,
-                                                 monkeypatch: pytest.MonkeyPatch
-                                                 ) -> None:
+def test_resume_retry_mismatched_args_is_refused(
+    loop_ws: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Ретрай с другими аргументами отклоняется; источник — записанный LRD."""
     import impresario.loop as loop_mod
     from impresario.loop import LoopError, resume_loop
@@ -687,17 +691,41 @@ def test_resume_retry_mismatched_args_is_refused(loop_ws: Path,
 
     monkeypatch.setattr(loop_mod, "_write_state", flaky)
     with pytest.raises(OSError):
-        resume_loop(loop_ws, CONTRACTS_DIR, max_iterations=3,
-                    actor="andrei", reason="r", now_iso=NOW)
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
     with pytest.raises(LoopError, match="does not match"):
-        resume_loop(loop_ws, CONTRACTS_DIR, max_iterations=4,
-                    actor="andrei", reason="r", now_iso=NOW)
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=4,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
     with pytest.raises(LoopError, match="does not match"):
-        resume_loop(loop_ws, CONTRACTS_DIR, max_iterations=3,
-                    actor="andrei", reason="another reason", now_iso=NOW)
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="another reason",
+            now_iso=NOW,
+        )
     # совпадающий ретрай доводит переход из существующего LRD
-    ref = resume_loop(loop_ws, CONTRACTS_DIR, max_iterations=3,
-                      actor="andrei", reason="r", now_iso="2026-08-12T19:00:00Z")
+    ref = resume_loop(
+        loop_ws,
+        CONTRACTS_DIR,
+        max_iterations=3,
+        actor="andrei",
+        reason="r",
+        now_iso="2026-08-12T19:00:00Z",
+    )
     decision = load_doc(loop_ws / "decisions" / "lrd-001.yaml")
     assert decision.data["decided_at"] == NOW  # исходный timestamp сохранён
     assert ref == "loop-resume-decision://LRD-001"
@@ -721,8 +749,14 @@ def test_resume_fails_closed_on_invalid_lrd(loop_ws: Path) -> None:
         encoding="utf-8",
     )
     with pytest.raises(LoopError, match="invalid"):
-        resume_loop(loop_ws, CONTRACTS_DIR, max_iterations=3,
-                    actor="andrei", reason="r", now_iso=NOW)
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
     state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
     assert state["stop"]["verdict"] == "needs_human"
 
@@ -735,8 +769,14 @@ def test_resume_respects_single_writer_lock(loop_ws: Path) -> None:
     assert result.verdict == "needs_human"
     (loop_ws / ".lock").touch()
     with pytest.raises(LoopError, match="locked"):
-        resume_loop(loop_ws, CONTRACTS_DIR, max_iterations=3,
-                    actor="andrei", reason="r", now_iso=NOW)
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
     (loop_ws / ".lock").unlink()
 ```
 
@@ -809,9 +849,7 @@ def _load_active_resume_decision(
     ]
     same_identity: list[Doc] = []
     for doc in docs:
-        errors = sorted(
-            validator.iter_errors(doc.data), key=lambda e: list(e.path)
-        )
+        errors = sorted(validator.iter_errors(doc.data), key=lambda e: list(e.path))
         if errors:
             raise LoopError(
                 f"{doc.path}: invalid loop-resume-decision: "
@@ -833,14 +871,11 @@ def _load_active_resume_decision(
                 "(self, dangling or foreign identity)"
             )
         superseded.add(target_id)
-    active = [
-        d for d in same_identity if d.data["decision_id"] not in superseded
-    ]
+    active = [d for d in same_identity if d.data["decision_id"] not in superseded]
     if len(active) > 1:
         ids = ", ".join(sorted(d.data["decision_id"] for d in active))
         raise LoopError(
-            f"more than one active resume decision for ({loop_id}, "
-            f"{iteration}): {ids}"
+            f"more than one active resume decision for ({loop_id}, {iteration}): {ids}"
         )
     return active[0].data if active else None
 
@@ -882,11 +917,15 @@ def _resume_locked(
         workspace, lrd_validator, loop_id=loop_id, iteration=stop_iteration
     )
     if decision is None:
-        existing = {
-            d.data["decision_id"]
-            for p in sorted(ws.decisions_dir(workspace).glob("*.yaml"))
-            if (d := load_doc(p)).kind == "loop-resume-decision"
-        } if ws.decisions_dir(workspace).is_dir() else set()
+        existing = (
+            {
+                d.data["decision_id"]
+                for p in sorted(ws.decisions_dir(workspace).glob("*.yaml"))
+                if (d := load_doc(p)).kind == "loop-resume-decision"
+            }
+            if ws.decisions_dir(workspace).is_dir()
+            else set()
+        )
         decision = {
             "decision_id": ws.next_id("LRD", existing_ids=existing),
             "subject": {"loop_id": loop_id, "iteration": stop_iteration},
@@ -932,9 +971,7 @@ def _resume_locked(
         or stop.get("verdict") != NEEDS_HUMAN
         or int(stop["iteration"]) != stop_iteration
     ):
-        raise LoopError(
-            "loop.state changed before consumption; refusing to resume"
-        )
+        raise LoopError("loop.state changed before consumption; refusing to resume")
 
     decision_ref = f"loop-resume-decision://{decision['decision_id']}"
     already_resumed = any(

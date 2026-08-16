@@ -187,6 +187,28 @@ def main(argv: list[str] | None = None) -> int:
     gate_decide.add_argument("--supersedes", default=None)
     gate_decide.add_argument("--contracts", type=Path, default=None)
 
+    assess = subparsers.add_parser(
+        "assess", help="prompt harness: render briefs / ingest answers"
+    )
+    assess_sub = assess.add_subparsers(dest="assess_command", required=True)
+    a_render = assess_sub.add_parser(
+        "render", help="deterministically render evaluation briefs"
+    )
+    a_render.add_argument("workspace", type=Path)
+    a_render.add_argument("--idea", default=None)
+    a_render.add_argument("--prompts", type=Path, default=None)
+    a_render.add_argument("--contracts", type=Path, default=None)
+    a_ingest = assess_sub.add_parser(
+        "ingest", help="validate brief+answer pairs and materialize assessments"
+    )
+    a_ingest.add_argument("workspace", type=Path)
+    a_ingest.add_argument("--run-id", required=True)
+    a_ingest.add_argument("--actor", required=True)
+    a_ingest.add_argument("--model", required=True)
+    a_ingest.add_argument("--brief", action="append", required=True, type=Path)
+    a_ingest.add_argument("--answer", action="append", required=True, type=Path)
+    a_ingest.add_argument("--contracts", type=Path, default=None)
+
     args = parser.parse_args(argv)
 
     if args.command == "gate":
@@ -198,6 +220,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_backlog(args)
     if args.command == "forconcept":
         return _run_forconcept(args)
+    if args.command == "assess":
+        return _run_assess(args)
 
     def usage_error(message: str) -> int:
         report = Report()
@@ -338,6 +362,46 @@ def _run_forconcept(args) -> int:
     }
     print(json.dumps(out, ensure_ascii=False, indent=2))
     return 0 if result.verdict != FAILED else 1
+
+
+def _run_assess(args) -> int:
+    """Dispatch `impresario assess render|ingest` with a JSON report."""
+    from datetime import UTC, datetime
+
+    from .harness import HarnessError, find_prompts_dir, ingest_pairs, render_briefs
+
+    now = datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:
+        contracts = args.contracts or find_contracts_dir(Path.cwd())
+        if args.assess_command == "render":
+            prompts = args.prompts or find_prompts_dir(Path.cwd())
+            report = render_briefs(
+                args.workspace, contracts, prompts, idea_id=args.idea
+            )
+        else:
+            if len(args.brief) != len(args.answer):
+                raise HarnessError("--brief and --answer must come in pairs")
+            report = ingest_pairs(
+                args.workspace,
+                contracts,
+                run_id=args.run_id,
+                actor=args.actor,
+                model=args.model,
+                pairs=list(zip(args.brief, args.answer, strict=True)),
+                now_iso=now,
+            )
+    except (
+        HarnessError,
+        FileNotFoundError,
+        OSError,
+        UnknownContractError,
+        yaml.YAMLError,
+        UnicodeDecodeError,
+    ) as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
+        return EXIT_USAGE
+    print(json.dumps(report, ensure_ascii=False))
+    return 0
 
 
 def _run_gate(args) -> int:

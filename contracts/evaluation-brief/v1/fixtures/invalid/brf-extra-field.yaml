@@ -1,0 +1,12 @@
+brief_id: BRF-0123456789ab
+idea_ref: idea://IDEA-001
+input_hash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+prompt_version: prioritizer/v1
+prompt_pack_hash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+policy_version: scoring/v1
+strategy_hash: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+standards_hash: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+prompt_hash: "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+prompt: |
+  Оцени идею по осям. (fixture)
+rendered_at: "2026-08-16T00:00:00Z"
