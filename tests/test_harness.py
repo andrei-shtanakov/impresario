@@ -46,6 +46,24 @@ def test_prompt_pack_exists_and_carries_placeholders() -> None:
     assert "assessment-answer/v1" in text  # скелет ответа с дискриминатором
 
 
+def test_prompt_pack_pins_answer_schema_skeleton() -> None:
+    """The prompt.md skeleton must not drift from the answer schema."""
+    import json
+
+    text = (PROMPTS_DIR / "prioritizer" / "v1" / "prompt.md").read_text(
+        encoding="utf-8"
+    )
+    schema = json.loads(
+        (CONTRACTS_DIR / "assessment-answer" / "v1" / "schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    for name in schema["required"]:
+        assert name in text, f"{name}: required by schema, missing from prompt.md"
+    for name in ("strategy_blocker_ref", "standards_blocker_ref"):
+        assert name in text
+
+
 IDEA_DOC = {
     "id": "IDEA-001",
     "title": "Test idea",
@@ -437,6 +455,140 @@ def test_cli_assess_ingest_error_is_exit_2(
     assert code == 2
 
 
+def test_cli_assess_ingest_malformed_answer_yaml_is_exit_2(
+    assess_ws: Path, tmp_path: Path, capsys
+) -> None:
+    import json as jsonlib
+
+    from impresario.cli import main
+
+    report = main(["assess", "render", str(assess_ws)])
+    assert report == 0
+    out = jsonlib.loads(capsys.readouterr().out)
+
+    answer_path = tmp_path / "broken.yaml"
+    answer_path.write_text(": : not yaml : :", encoding="utf-8")
+    code = main(
+        [
+            "assess",
+            "ingest",
+            str(assess_ws),
+            "--run-id",
+            "RUN-100",
+            "--actor",
+            "claude",
+            "--model",
+            "claude-fable-5",
+            "--brief",
+            out["briefs"][0]["path"],
+            "--answer",
+            str(answer_path),
+        ]
+    )
+    out2 = jsonlib.loads(capsys.readouterr().out)
+    assert code == 2
+    assert out2["ok"] is False
+
+
+def test_cli_assess_ingest_unknown_schema_answer_is_exit_2(
+    assess_ws: Path, tmp_path: Path, capsys
+) -> None:
+    import json as jsonlib
+
+    from impresario.cli import main
+
+    report = main(["assess", "render", str(assess_ws)])
+    assert report == 0
+    out = jsonlib.loads(capsys.readouterr().out)
+
+    answer_path = tmp_path / "no-schema-version.yaml"
+    answer_path.write_text("fit_strategy: 3\n", encoding="utf-8")
+    code = main(
+        [
+            "assess",
+            "ingest",
+            str(assess_ws),
+            "--run-id",
+            "RUN-100",
+            "--actor",
+            "claude",
+            "--model",
+            "claude-fable-5",
+            "--brief",
+            out["briefs"][0]["path"],
+            "--answer",
+            str(answer_path),
+        ]
+    )
+    out2 = jsonlib.loads(capsys.readouterr().out)
+    assert code == 2
+    assert out2["ok"] is False
+
+
+def _hand_written_assessment(assessment_id: str, *, confidence: str = "medium") -> dict:
+    return {
+        "assessment_id": assessment_id,
+        "idea_ref": "idea://IDEA-001",
+        "run_id": "RUN-100",
+        "input_hash": "sha256:" + "a" * 64,
+        "policy_version": "scoring/v1",
+        "evidence_refs": ["strategy://ecosystem/2026/G-1"],
+        "fit_strategy": 5,
+        "fit_market": "unknown",
+        "fit_standards": 4,
+        "strategy_blocker": False,
+        "standards_blocker": False,
+        "rationale": {
+            "fit_strategy": "x",
+            "fit_market": "y",
+            "fit_standards": "z",
+        },
+        "confidence": confidence,
+        "evaluator": {
+            "kind": "agent",
+            "id": "claude",
+            "model": "claude-fable-5",
+            "prompt_version": "prioritizer/v1",
+        },
+        "provenance": {
+            "brief_id": "BRF-0123456789ab",
+            "prompt_pack_hash": "sha256:" + "b" * 64,
+            "strategy_hash": "sha256:" + "c" * 64,
+            "standards_hash": "sha256:" + "d" * 64,
+        },
+        "evaluated_at": NOW,
+    }
+
+
+def test_ingest_duplicate_hand_written_assessments_is_typed_error(
+    assess_ws: Path,
+) -> None:
+    """Hand-edited workspace with two ASMT files sharing (run_id, brief_id)
+    must raise a typed HarnessError while building existing_by_key, not
+    silently last-wins."""
+    from impresario.harness import HarnessError
+
+    (assess_ws / "assessments").mkdir(parents=True)
+    (assess_ws / "assessments" / "asmt-001.yaml").write_text(
+        yaml.safe_dump(
+            _hand_written_assessment("ASMT-001", confidence="medium"),
+            allow_unicode=True,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    (assess_ws / "assessments" / "asmt-002.yaml").write_text(
+        yaml.safe_dump(
+            _hand_written_assessment("ASMT-002", confidence="low"),
+            allow_unicode=True,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(HarnessError, match="duplicate"):
+        _ingest(assess_ws, [])
+
+
 def test_cli_assess_render_idea_filter(assess_ws: Path, capsys) -> None:
     """Carried-over review item: --idea filtering had zero CLI coverage."""
     import json as jsonlib
@@ -456,3 +608,21 @@ def test_cli_assess_render_idea_filter(assess_ws: Path, capsys) -> None:
     assert code == 0 and out["ok"]
     assert len(out["briefs"]) == 1
     assert out["briefs"][0]["idea_ref"] == "idea://IDEA-001"
+
+
+def test_cli_assess_render_idea_no_match_is_exit_2(assess_ws: Path, capsys) -> None:
+    import json as jsonlib
+
+    from impresario.cli import main
+
+    code = main(["assess", "render", str(assess_ws), "--idea", "IDEA-999"])
+    out = jsonlib.loads(capsys.readouterr().out)
+    assert code == 2
+    assert out["ok"] is False
+
+
+def test_render_idea_no_match_raises_harness_error(assess_ws: Path) -> None:
+    from impresario.harness import HarnessError, render_briefs
+
+    with pytest.raises(HarnessError, match="IDEA-999"):
+        render_briefs(assess_ws, CONTRACTS_DIR, PROMPTS_DIR, idea_id="IDEA-999")

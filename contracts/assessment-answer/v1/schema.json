@@ -46,6 +46,7 @@
     "rationale": {
       "type": "object",
       "additionalProperties": false,
+      "required": ["fit_strategy", "fit_market", "fit_standards"],
       "properties": {
         "fit_strategy": {
           "type": "string",

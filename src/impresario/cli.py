@@ -390,7 +390,13 @@ def _run_assess(args) -> int:
                 pairs=list(zip(args.brief, args.answer, strict=True)),
                 now_iso=now,
             )
-    except (HarnessError, FileNotFoundError, OSError) as exc:
+    except (
+        HarnessError,
+        FileNotFoundError,
+        OSError,
+        UnknownContractError,
+        yaml.YAMLError,
+    ) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
         return EXIT_USAGE
     print(json.dumps(report, ensure_ascii=False))

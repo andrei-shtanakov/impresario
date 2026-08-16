@@ -87,9 +87,9 @@ Expected: FAIL — `test_detect_kind_lrd_prefix` даёт `"gate-decision"`.
 `"gate-decision"`):
 
 ```python
-("gate-decision",)
-("loop-resume-decision",)
-("run-record",)
+    "gate-decision",
+    "loop-resume-decision",
+    "run-record",
 ```
 
 и заменить ветку в `detect_kind`:

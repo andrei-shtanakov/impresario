@@ -90,8 +90,8 @@ def detect_kind(data: dict[str, Any]) -> str:
         if kind is not None:
             return kind
     raise UnknownContractError(
-        "cannot detect contract kind: no assessment_id/proposal_id/decision_id "
-        "and no recognizable id prefix"
+        "cannot detect contract kind: no brief_id/schema_version/assessment_id/"
+        "proposal_id/decision_id and no recognizable id prefix"
     )
 
 

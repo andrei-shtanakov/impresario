@@ -1,0 +1,12 @@
+schema_version: assessment-answer/v1
+fit_strategy: 5
+fit_market: 4
+fit_standards: 5
+strategy_blocker: false
+standards_blocker: true
+standards_blocker_ref: "standards://ecosystem/STD-6"
+rationale: {}
+evidence_refs:
+  - "strategy://ecosystem/2026/G-5"
+  - "standards://ecosystem/STD-6"
+confidence: high

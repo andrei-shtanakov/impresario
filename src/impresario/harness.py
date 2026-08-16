@@ -79,8 +79,16 @@ def build_brief(
     prompt_pack_hash: str,
     strategy_text: str,
     standards_text: str,
+    strategy_hash: str,
+    standards_hash: str,
 ) -> dict[str, Any]:
-    """A complete, schema-valid EvaluationBrief document (no I/O)."""
+    """A complete, schema-valid EvaluationBrief document (no I/O).
+
+    strategy_hash/standards_hash are computed by the caller from raw file
+    bytes (not from strategy_text/standards_text.encode()) so the digest
+    matches an external `sha256sum` regardless of newline translation
+    performed while decoding the text used for prompt substitution.
+    """
     prompt = (
         prompt_template.replace("{idea}", idea_text)
         .replace("{strategy}", strategy_text)
@@ -92,8 +100,8 @@ def build_brief(
         "prompt_version": PROMPT_VERSION,
         "prompt_pack_hash": prompt_pack_hash,
         "policy_version": POLICY_VERSION,
-        "strategy_hash": sha256_bytes(strategy_text.encode("utf-8")),
-        "standards_hash": sha256_bytes(standards_text.encode("utf-8")),
+        "strategy_hash": strategy_hash,
+        "standards_hash": standards_hash,
         "prompt_hash": sha256_bytes(prompt.encode("utf-8")),
     }
     return {"brief_id": brief_identity(fields), **fields, "prompt": prompt}
@@ -116,8 +124,12 @@ def render_briefs(
     pack_path = prompts_dir / "prioritizer" / "v1" / "prompt.md"
     prompt_template = pack_path.read_text(encoding="utf-8")
     prompt_pack_hash = sha256_bytes(pack_path.read_bytes())
-    strategy_text = (workspace / "strategy.md").read_text(encoding="utf-8")
-    standards_text = (workspace / "standards.md").read_text(encoding="utf-8")
+    strategy_raw = (workspace / "strategy.md").read_bytes()
+    standards_raw = (workspace / "standards.md").read_bytes()
+    strategy_text = strategy_raw.decode("utf-8")
+    standards_text = standards_raw.decode("utf-8")
+    strategy_hash = sha256_bytes(strategy_raw)
+    standards_hash = sha256_bytes(standards_raw)
     validators = load_validators(contracts_dir)
 
     idea_paths = sorted((workspace / "ideas").glob("*.yaml"))
@@ -135,6 +147,8 @@ def render_briefs(
             prompt_pack_hash=prompt_pack_hash,
             strategy_text=strategy_text,
             standards_text=standards_text,
+            strategy_hash=strategy_hash,
+            standards_hash=standards_hash,
         )
         findings = check_schema(
             Doc(path=briefs_dir(workspace), kind="evaluation-brief", data=brief),
@@ -162,6 +176,8 @@ def render_briefs(
                 "path": str(path),
             }
         )
+    if idea_id is not None and not briefs:
+        raise HarnessError(f"--idea {idea_id}: no such card in workspace")
     return {"ok": True, "briefs": briefs}
 
 
@@ -265,11 +281,20 @@ def _ingest_locked(
         if ws.assessments_dir(workspace).is_dir()
         else []
     )
-    existing_by_key = {
-        (d.data.get("run_id"), (d.data.get("provenance") or {}).get("brief_id")): d
-        for d in existing_docs
-        if d.kind == "axis-assessment"
-    }
+    existing_by_key: dict[tuple[Any, Any], Doc] = {}
+    for d in existing_docs:
+        if d.kind != "axis-assessment":
+            continue
+        key = (d.data.get("run_id"), (d.data.get("provenance") or {}).get("brief_id"))
+        collision = existing_by_key.get(key)
+        if collision is not None:
+            raise HarnessError(
+                f"duplicate assessment for (run_id, brief_id)={key}: "
+                f"{collision.data.get('assessment_id')} and "
+                f"{d.data.get('assessment_id')} both present in workspace "
+                "(hand-edited?)"
+            )
+        existing_by_key[key] = d
 
     seen_brief_ids: set[str] = set()
     to_write: list[dict[str, Any]] = []
@@ -366,6 +391,11 @@ def _ingest_locked(
             **candidate,
             "evaluated_at": now_iso,
         }
+        # Ремонт после частичной записи — идемпотентным повтором всего
+        # вызова, не multi-file транзакцией (спека, §ingest): если эта
+        # ревалидация здесь провалится ПОСЛЕ того, как предыдущие
+        # кандидаты в to_write уже записаны на диск, они остаются
+        # записанными — откат сознательно не делается.
         errors = sorted(validator.iter_errors(full), key=lambda e: list(e.path))
         if errors:
             raise HarnessError(
