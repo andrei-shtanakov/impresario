@@ -89,3 +89,13 @@ def test_answer_without_discriminator_is_unknown_kind() -> None:
 
     with pytest.raises(UnknownContractError):
         detect_kind({"schema_version": "assessment-answer/v0"})
+
+
+def test_detect_kind_loop_harness_discriminators() -> None:
+    from impresario.loader import UnknownContractError, detect_kind
+
+    assert detect_kind({"schema_version": "stage-brief/v1"}) == "stage-brief"
+    assert detect_kind({"schema_version": "research-answer/v1"}) == "research-answer"
+    assert detect_kind({"schema_version": "concept-answer/v1"}) == "concept-answer"
+    with pytest.raises(UnknownContractError):
+        detect_kind({"schema_version": "stage-brief/v0"})

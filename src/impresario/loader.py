@@ -23,6 +23,9 @@ CONTRACT_KINDS: tuple[str, ...] = (
     "loop-state",
     "evaluation-brief",
     "assessment-answer",
+    "stage-brief",
+    "research-answer",
+    "concept-answer",
 )
 
 _ID_PREFIX_TO_KIND: dict[str, str] = {
@@ -67,10 +70,17 @@ _PlainDateLoader.add_constructor(
 
 def detect_kind(data: dict[str, Any]) -> str:
     """Detect the contract kind of a document from its identifying fields."""
+    schema_version = data.get("schema_version")
+    if schema_version == "assessment-answer/v1":
+        return "assessment-answer"
+    if schema_version == "stage-brief/v1":
+        return "stage-brief"
+    if schema_version == "research-answer/v1":
+        return "research-answer"
+    if schema_version == "concept-answer/v1":
+        return "concept-answer"
     if "brief_id" in data:
         return "evaluation-brief"
-    if data.get("schema_version") == "assessment-answer/v1":
-        return "assessment-answer"
     if "loop_id" in data:
         return "loop-state"
     if "assessment_id" in data:

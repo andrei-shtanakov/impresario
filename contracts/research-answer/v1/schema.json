@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:impresario:contract:research-answer:v1",
+  "title": "ResearchAnswer",
+  "description": "Только контент роли researcher: findings, constraints, gaps, brief_for_creator, requests. Bookkeeping (id, refs, iteration, produced_by, produced_at, provenance) авторит step (урок №15). schema_version — маркер формата.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "findings",
+    "constraints",
+    "gaps",
+    "brief_for_creator",
+    "requests_to_creator"
+  ],
+  "properties": {
+    "schema_version": { "const": "research-answer/v1" },
+    "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "constraints": { "type": "array", "items": { "$ref": "#/$defs/constraint" } },
+    "gaps": { "type": "array", "items": { "$ref": "#/$defs/gap" } },
+    "brief_for_creator": { "type": "string", "minLength": 1 },
+    "requests_to_creator": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim", "confidence"],
+      "properties": {
+        "claim": { "type": "string", "minLength": 1 },
+        "source_ref": { "type": "string", "minLength": 1 },
+        "confidence": { "enum": ["high", "medium", "low", "unknown"] },
+        "superseded": { "type": "boolean" }
+      },
+      "if": {
+        "properties": { "confidence": { "enum": ["high", "medium", "low"] } }
+      },
+      "then": { "required": ["claim", "confidence", "source_ref"] }
+    },
+    "constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "statement"],
+      "properties": {
+        "kind": { "enum": ["regulatory", "standard", "strategy", "internal", "other"] },
+        "statement": { "type": "string", "minLength": 1 },
+        "source_ref": { "type": "string", "minLength": 1 }
+      }
+    },
+    "gap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["what", "blocks_approval"],
+      "properties": {
+        "what": { "type": "string", "minLength": 1 },
+        "needed": { "type": "string" },
+        "blocks_approval": { "type": "boolean" },
+        "closed": { "type": "boolean" },
+        "answered_by": {
+          "type": "string",
+          "pattern": "^research-pack://RP-[0-9]{3,}$"
+        }
+      }
+    }
+  }
+}

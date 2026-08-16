@@ -1,0 +1,14 @@
+schema_version: stage-brief/v1
+brief_id: SBR-0123456789ab
+loop_id: LOOP-001
+iteration: 0
+role: researcher
+prompt_version: researcher/v1
+prompt_pack_hash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+idea_input_hash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+proposal_hash: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+history_hash: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+prompt_hash: "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+prompt: |
+  Исследуй идею. (fixture)
+rendered_at: 2026-08-16T12:00:00Z
