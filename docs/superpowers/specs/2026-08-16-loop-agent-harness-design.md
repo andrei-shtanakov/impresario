@@ -27,10 +27,18 @@ evidence, typed ingest, полный provenance.
 **Ключевой инвариант: раннер — единственный исполнитель семантики.**
 step ничего не персистит сам: он собирает полный артефакт (контент из
 answer + bookkeeping) и скармливает его существующему `run_loop` через
-одноразовый `SingleAnswerAgent`, используя существующие границы
-`stop_after` (`research:N` для researcher; `evaluate:N` для creator —
-раннер сам проходит validate → apply delta → evaluate → вердикт или
-пауза). Валидация, trace, evaluator, fail-closed, crash/resume — всё
+одноразовый `SingleAnswerAgent`. Границы `stop_after`: `research:N` для
+researcher; для creator — **новая граница раннера `iteration:N`**,
+стоящая ПОСЛЕ полного evaluate-перехода: терминальный вердикт
+(`ready_for_business` / `needs_human`) уже материализован в loop.state и
+trace и возвращается как есть, а при вердикте `continue` цикл
+останавливается непосредственно перед вызовом researcher итерации N+1
+(paused). Существующая граница `evaluate:N` — crash-test граница «до
+terminal effects» — для step непригодна: после неё нетерминальный прогон
+дошёл бы до researcher N+1, `SingleAnswerAgent` упал бы, и раннер
+записал бы terminal `failed`. Добавление `iteration:N` — единственное
+изменение раннера в этом скоупе; семантика существующих границ не
+меняется. Валидация, trace, evaluator, fail-closed, crash/resume — всё
 остаётся у раннера; `forconcept resume` после `needs_human` стыкуется
 без изменений. Evaluator детерминированный — неприкосновенен.
 
@@ -88,6 +96,13 @@ Briefs — immutable evidence в `<ws>/briefs/` (файл
 (what, blocks_approval, опционально closed + answered_by — закрытие
 прежних пробелов с evidence), `brief_for_creator` (непустой),
 `requests_to_creator[]`.
+
+Поле `gaps[].answered_by` требует расширения потребителя:
+**research-pack/v1 расширяется** опциональным `answered_by`
+(строка minLength 1, форма как у `assumptions[].answered_by` в
+concept-draft/v1) — иначе собранный RP был бы schema-invalid. Это
+расширение множества валидных документов (допустимо без смены `$id`);
+существующие RP валидны; расширение входит в скоуп задачи.
 
 **`concept-answer/v1`** (`const: "concept-answer/v1"`): `value_prop`,
 `alternatives[]` (direction/summary), `chosen_direction`
@@ -155,12 +170,16 @@ impresario forconcept step <ws> --brief <path> --answer <path> \
    — typed `STALE_BRIEF`. В каждый момент валиден ровно один brief —
    класс friction №22 закрыт структурно.
 4. Answer: схема контракта, соответствующего роли brief'а.
-5. Материализация полного артефакта + запуск раннера:
-   `run_loop(ws, SingleAnswerAgent(doc), stop_after=research:N |
-   evaluate:N)`. Невалидный собранный артефакт отвергает сам раннер
-   (fail-closed, verdict=failed не персистится харнессом — семантика
-   раннера не дублируется). Отчёт: артефакт, вердикт/пауза раннера,
-   следующая ожидаемая стадия (или terminal).
+5. **Пре-валидация собранного артефакта**: step валидирует полностью
+   собранный RP/CD контрактным валидатором ДО запуска раннера;
+   невалидная сборка — typed-ошибка step'а, раннер не вызывается и
+   ничего не персистится. Причина: путь раннера для невалидного
+   артефакта персистит `loop.state.stop.verdict = failed` и trace
+   `stopped` — терминально и разрушительно для пользовательской ошибки
+   ingest. Проверка раннера остаётся как defense-in-depth.
+6. Запуск раннера: `run_loop(ws, SingleAnswerAgent(doc),
+   stop_after=research:N | iteration:N)`. Отчёт: артефакт,
+   вердикт/пауза раннера, следующая ожидаемая стадия (или terminal).
 
 `SingleAnswerAgent` — реализация `Agent`, отдающая документ ровно для
 `(role, iteration)` и типизированно падающая на любом другом вызове
@@ -175,7 +194,8 @@ impresario forconcept step <ws> --brief <path> --answer <path> \
 - research-pack/v1 и concept-draft/v1 расширяются опциональным
   `provenance {brief_id: ^SBR-…, prompt_pack_hash}` (расширение без
   смены `$id`; step заполняет всегда, ScriptedAgent-артефакты и история
-  без него валидны).
+  без него валидны). research-pack/v1 дополнительно получает
+  `gaps[].answered_by` (см. контракты ответов).
 - Кросс-чек `ARTIFACT_BRIEF` (аналог ASSESS_BRIEF): `provenance.brief_id`
   артефакта резолвится ровно в один stage-brief бандла (дубль/отсутствие
   — находка); `prompt_pack_hash` и `prompt_version`
@@ -207,6 +227,11 @@ impresario forconcept step <ws> --brief <path> --answer <path> \
   `STEP_CONFLICT`.
 - Mis-pairing: creator-brief при ожидаемом researcher → `STALE_BRIEF`.
 - Цепочка `needs_human` → `forconcept resume` → step итерации N+1.
+- Граница `iteration:N`: терминальный вердикт материализован (loop.state
+  и trace), continue → paused перед researcher N+1; существующие
+  `evaluate:N`-тесты (crash-семантика) не изменились.
+- Пре-валидация сборки: невалидный собранный артефакт → typed-ошибка
+  step'а, loop.state НЕ тронут (никакого verdict=failed).
 - Детерминизм brief (двойной рендер байт-в-байт; порядок history
   `(iteration, role, id)` стабилен).
 - CLI-тесты обеих команд, включая typed-ошибки exit 2.
