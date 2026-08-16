@@ -629,10 +629,18 @@ def check_assessment_provenance(docs: list[Doc]) -> list[Finding]:
 
     Assessments without provenance (manual-v0 and older) are skipped.
     brief_id stays a plain id (no new ref scheme) — the resolution is
-    explicit here.
+    explicit here. Duplicate brief_ids are detected and reported (exact-one
+    constraint per spec).
     """
     findings: list[Finding] = []
-    briefs = {d.data.get("brief_id"): d for d in docs if d.kind == "evaluation-brief"}
+    # Group briefs by brief_id to detect duplicates (exact-one constraint).
+    briefs_by_id: dict[str, list[Doc]] = {}
+    for d in docs:
+        if d.kind == "evaluation-brief":
+            brief_id = d.data.get("brief_id")
+            if brief_id is not None:
+                briefs_by_id.setdefault(brief_id, []).append(d)
+
     for doc in docs:
         if doc.kind != "axis-assessment":
             continue
@@ -643,13 +651,20 @@ def check_assessment_provenance(docs: list[Doc]) -> list[Finding]:
         def err(message: str, *, _path: str = str(doc.path)) -> None:
             findings.append(Finding(code="ASSESS_BRIEF", path=_path, message=message))
 
-        brief = briefs.get(provenance.get("brief_id"))
-        if brief is None:
+        brief_id = provenance.get("brief_id")
+        if not isinstance(brief_id, str):
+            err(f"provenance.brief_id {brief_id} is not a string")
+            continue
+        brief_list = briefs_by_id.get(brief_id, [])
+
+        if len(brief_list) != 1:
             err(
-                f"provenance.brief_id {provenance.get('brief_id')} does not "
-                "resolve to an EvaluationBrief in this bundle"
+                f"provenance.brief_id {brief_id} matches {len(brief_list)} "
+                "evaluation-brief(s) in bundle (expected exactly 1)"
             )
             continue
+
+        brief = brief_list[0]
         for field in ("prompt_pack_hash", "strategy_hash", "standards_hash"):
             if provenance.get(field) != brief.data.get(field):
                 err(f"provenance.{field} != brief {field}")

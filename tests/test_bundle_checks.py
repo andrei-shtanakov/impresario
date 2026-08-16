@@ -327,7 +327,13 @@ def test_brief_identity_tampered_prompt(bundle: list[Doc]) -> None:
     doc = _brief_doc()
     data = dict(doc.data, prompt=doc.data["prompt"] + "инъекция\n")
     docs = [*bundle, Doc(path=doc.path, kind=doc.kind, data=data)]
-    assert "BRIEF_IDENTITY" in _codes(docs)  # шаг 1: prompt_hash ≠ байты
+    findings = run_bundle_checks(docs)
+    codes = {f.code for f in findings}
+    assert "BRIEF_IDENTITY" in codes  # шаг 1: prompt_hash ≠ байты
+    # Optional hardening: exactly one BRIEF_IDENTITY finding for the tampered doc.
+    brief_findings = [f for f in findings if f.code == "BRIEF_IDENTITY"]
+    assert len(brief_findings) == 1
+    assert "prompt_hash" in brief_findings[0].message
 
 
 def test_brief_identity_tampered_field(bundle: list[Doc]) -> None:
@@ -403,3 +409,37 @@ def test_assess_brief_skips_manual_v0(bundle: list[Doc]) -> None:
     data = {k: v for k, v in asmt.data.items() if k != "provenance"}
     docs = [*bundle, Doc(path=asmt.path, kind=asmt.kind, data=data)]
     assert "ASSESS_BRIEF" not in _codes(docs)
+
+
+def test_assess_brief_duplicate_brief_id_order_independent(
+    bundle: list[Doc],
+) -> None:
+    """Duplicate brief_id detection is order-independent (exact-one constraint).
+
+    Two briefs with the same brief_id but different strategy_hash values
+    in different orderings should both report ASSESS_BRIEF for the matching
+    assessment, not silently pick one (last-wins bug).
+    """
+    # Create two briefs with identical brief_id but different strategy_hash.
+    base = _brief_doc()
+    brief1 = base
+    # Create a second brief with the same brief_id but tampered strategy_hash.
+    brief2_data = dict(base.data, strategy_hash="sha256:" + "e" * 64)
+    brief2 = Doc(path=Path("brf2.yaml"), kind=base.kind, data=brief2_data)
+
+    # Ensure they have the same brief_id (they do via constructor).
+    assert brief1.data["brief_id"] == brief2.data["brief_id"]
+
+    asmt = _assessment_with_provenance(brief1)
+
+    # Test order 1: [brief1, brief2, asmt]
+    codes1 = _codes([*bundle, brief1, brief2, asmt])
+    assert "ASSESS_BRIEF" in codes1, (
+        "Expected ASSESS_BRIEF for duplicate brief_ids (order 1)"
+    )
+
+    # Test order 2: [brief2, brief1, asmt] — must also find ASSESS_BRIEF.
+    codes2 = _codes([*bundle, brief2, brief1, asmt])
+    assert "ASSESS_BRIEF" in codes2, (
+        "Expected ASSESS_BRIEF for duplicate brief_ids (order 2)"
+    )
