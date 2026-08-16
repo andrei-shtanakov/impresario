@@ -1,6 +1,6 @@
 # Дизайн: промпт-харнесс оценщика (prioritizer/v1) — уход от manual-v0
 
-Дата: 2026-08-16. Статус: на ревью (M2-хвост, friction №5; уроки №3, №6,
+Дата: 2026-08-16. Статус: утверждён (M2-хвост, friction №5; уроки №3, №6,
 №15, №16).
 
 ## Проблема
@@ -49,23 +49,28 @@ forconcept-цикла — отдельный следующий спек на т
 | `policy_version` | `scoring/v1` |
 | `strategy_hash` | sha256 байтов `<ws>/strategy.md` |
 | `standards_hash` | sha256 байтов `<ws>/standards.md` |
+| `prompt_hash` | sha256 точных UTF-8 байтов поля `prompt` |
 | `prompt` | отрендеренный текст промпта целиком |
 
-**Identity детерминирована**: `brief_id` = `BRF-` + первые 12 hex
-канонического хеша документа `{idea_ref, input_hash, prompt_version,
-prompt_pack_hash, policy_version, strategy_hash, standards_hash}`
-(существующий `canonical_doc_hash`). Ни timestamp, ни случайного ID:
-одинаковые входы → байт-в-байт одинаковый brief.
+**Identity детерминирована и покрывает prompt**: `brief_id` = `BRF-` +
+первые 12 hex канонического хеша документа `{idea_ref, input_hash,
+prompt_version, prompt_pack_hash, policy_version, strategy_hash,
+standards_hash, prompt_hash}` (существующий `canonical_doc_hash`).
+Без `prompt_hash` в identity подмена текста промпта при сохранённых
+остальных полях прошла бы пересчёт — поэтому prompt входит в identity
+через свой хеш. Ни timestamp, ни случайного ID: одинаковые входы →
+байт-в-байт одинаковый brief.
 
 **Brief — immutable evidence.** `briefs/` не очищается: brief встраивает
 отрендеренный промпт — то есть полные байты идеи, стратегии и стандартов
 на момент рендера — и потому сам является snapshot'ом своих входов.
 Заявление «assessment хранит всё необходимое для воспроизведения»
 выполняется через ссылку `provenance.brief_id` → `briefs/<id>.yaml`.
-Контент-адресация делает перезапись невозможной по построению: тот же
-`brief_id` = те же байты; идемпотентная повторная запись идентичных
-байтов разрешена, запись расходящихся байтов под существующим id —
-typed-ошибка (`BRIEF_IDENTITY` поймает и руками подделанный файл).
+Контент-адресация (identity включает `prompt_hash`) делает перезапись
+невозможной по построению: тот же `brief_id` = те же байты;
+идемпотентная повторная запись идентичных байтов разрешена, запись
+расходящихся байтов под существующим id — typed-ошибка
+(`BRIEF_IDENTITY` поймает и руками подделанный файл).
 Файл — `briefs/<brief_id в lower case>.yaml`.
 
 ## Контракт assessment-answer/v1
@@ -179,8 +184,18 @@ brief'а, `provenance` из brief'а; validate-then-atomic write;
 - Loader: kind `evaluation-brief` (по `brief_id`), kind
   `assessment-answer` (по `schema_version` — дискриминатор, не
   эвристика по набору полей); оба в `CONTRACT_KINDS`.
-- Кросс-чек `BRIEF_IDENTITY`: brief в bundle обязан иметь `brief_id`,
-  равный пересчёту от собственных полей (подделка/порча — находка).
+- Кросс-чек `BRIEF_IDENTITY` — два шага: (1) `prompt_hash` равен
+  sha256 фактических UTF-8 байтов поля `prompt`; (2) `brief_id` равен
+  пересчёту канонического хеша identity-полей, включая `prompt_hash`.
+  Подделка любого из слоёв — находка.
+- Кросс-чек `ASSESS_BRIEF` — цепь assessment → brief tool-enforced:
+  `provenance.brief_id` резолвится ровно в один EvaluationBrief бандла;
+  `provenance`-хеши (`prompt_pack_hash`, `strategy_hash`,
+  `standards_hash`) совпадают с полями brief'а; `input_hash` и
+  `evaluator.prompt_version` самого assessment также совпадают с
+  brief'ом. `brief_id` остаётся plain id (новая ref-схема не вводится —
+  проверка явная); assessment без `provenance` (manual-v0 и старые)
+  чек пропускает.
 - Answers в bundle schema-only; кросс-объектных проверок не имеют
   (answer намеренно без identity).
 
@@ -189,7 +204,10 @@ brief'а, `provenance` из brief'а; validate-then-atomic write;
 - Fixtures ≥1 valid / ≥1 invalid на оба новых контракта (invalid answer:
   лишнее bookkeeping-поле; blocker без ref; без `schema_version`);
   fixture axis-assessment с `provenance` + существующие без него валидны.
-- Ломающий тест `BRIEF_IDENTITY`.
+- Ломающие тесты `BRIEF_IDENTITY` (оба шага: порча prompt при верном
+  brief_id; порча identity-поля) и `ASSESS_BRIEF` (висячий
+  provenance.brief_id; расходящийся хеш; расходящийся
+  input_hash/prompt_version).
 - Golden-детерминизм render: двойной прогон байт-в-байт; пин `brief_id`
   на фиксированных входах; изменение карточки → новый id, старый brief
   нетронут.
