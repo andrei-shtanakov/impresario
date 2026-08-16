@@ -302,3 +302,39 @@ def test_version_conflict(ready_ws: Path) -> None:
     )
     assert record is None
     assert {f.code for f in report.errors} == {"VERSION_CONFLICT"}
+
+
+def test_lrd_file_in_decisions_dir_does_not_break_gates(
+    ready_ws: Path,
+) -> None:
+    """LoopResumeDecision в decisions/ невидим для гейтовой логики."""
+    decisions = ready_ws / "decisions"
+    decisions.mkdir(exist_ok=True)
+    (decisions / "lrd-001.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "decision_id": "LRD-001",
+                "subject": {"loop_id": "LOOP-001", "iteration": 1},
+                "new_max_iterations": 3,
+                "decided_by": {"kind": "human", "id": "andrei"},
+                "decided_at": T0,
+                "reason": "resume authorization, not a gate decision",
+            },
+            allow_unicode=True,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    version = load_doc(ready_ws / "proposal.yaml").data["version"]
+    report, record = _decide(
+        ready_ws,
+        T1,
+        gate_id="qg5_business",
+        decision="approve",
+        expected_version=version,
+        role="business_owner",
+    )
+    assert report.ok, [f.message for f in report.errors]
+    assert record is not None and record["decision_id"] == "GD-001"
+    ok, reasons = readiness(ready_ws)
+    assert ok, reasons

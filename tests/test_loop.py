@@ -578,3 +578,323 @@ def test_cli_bad_script_is_json_error(
     assert code == 2
     assert out["ok"] is False
     assert "script" in out["error"]
+
+
+def test_resume_writes_and_consumes_lrd(loop_ws: Path) -> None:
+    """Resume создаёт immutable LRD и потребляет его; бандл чист."""
+    from impresario.loop import resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    ref = resume_loop(
+        loop_ws,
+        CONTRACTS_DIR,
+        max_iterations=3,
+        actor="andrei",
+        reason="owner decision",
+        now_iso=NOW,
+    )
+    assert ref == "loop-resume-decision://LRD-001"
+    decision = load_doc(loop_ws / "decisions" / "lrd-001.yaml")
+    assert decision.kind == "loop-resume-decision"
+    assert decision.data["subject"] == {"loop_id": "LOOP-001", "iteration": 1}
+    assert decision.data["new_max_iterations"] == 3
+    assert decision.data["decided_at"] == NOW
+    resumed = [e for e in _trace_events(loop_ws) if e["event"] == "resumed"]
+    assert resumed[0]["decision_ref"] == ref
+    report = validate_paths([loop_ws], CONTRACTS_DIR, bundle=True)
+    assert report.ok, [f"{f.code}: {f.message}" for f in report.errors]
+
+
+def test_resume_retry_mismatched_args_is_refused(
+    loop_ws: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ретрай с другими аргументами отклоняется; источник — записанный LRD."""
+    import impresario.loop as loop_mod
+    from impresario.loop import LoopError, resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    original = loop_mod._write_state
+    calls = {"n": 0}
+
+    def flaky(workspace, state, validator):  # noqa: ANN001, ANN202
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise OSError("simulated crash before atomic replace")
+        original(workspace, state, validator)
+
+    monkeypatch.setattr(loop_mod, "_write_state", flaky)
+    with pytest.raises(OSError):
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
+    with pytest.raises(LoopError, match="does not match"):
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=4,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
+    with pytest.raises(LoopError, match="does not match"):
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="another reason",
+            now_iso=NOW,
+        )
+    # совпадающий ретрай доводит переход из существующего LRD
+    ref = resume_loop(
+        loop_ws,
+        CONTRACTS_DIR,
+        max_iterations=3,
+        actor="andrei",
+        reason="r",
+        now_iso="2026-08-12T19:00:00Z",
+    )
+    decision = load_doc(loop_ws / "decisions" / "lrd-001.yaml")
+    assert decision.data["decided_at"] == NOW  # исходный timestamp сохранён
+    assert ref == "loop-resume-decision://LRD-001"
+
+
+def test_resume_fails_closed_on_invalid_lrd(loop_ws: Path) -> None:
+    """Невалидное решение не потребляется; ожидание сохраняется."""
+    from impresario.loop import LoopError, resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    decisions = loop_ws / "decisions"
+    decisions.mkdir(exist_ok=True)
+    (decisions / "lrd-001.yaml").write_text(
+        "decision_id: LRD-001\n"
+        "subject:\n  loop_id: LOOP-001\n  iteration: 1\n"
+        "new_max_iterations: 3\n"
+        "decided_by:\n  kind: agent\n  id: bot\n"  # не human — schema fail
+        f"decided_at: '{NOW}'\n"
+        "reason: r\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(LoopError, match="invalid"):
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"]["verdict"] == "needs_human"
+
+
+def test_resume_respects_single_writer_lock(loop_ws: Path) -> None:
+    """Конкурентный writer (существующий .lock) — typed fail-fast."""
+    from impresario.loop import LoopError, resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    (loop_ws / ".lock").touch()
+    with pytest.raises(LoopError, match="locked"):
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
+    (loop_ws / ".lock").unlink()
+
+
+def _write_lrd(
+    workspace: Path,
+    decision_id: str,
+    *,
+    iteration: int,
+    new_max_iterations: int,
+    actor: str = "andrei",
+    reason: str = "r",
+    supersedes: str | None = None,
+) -> None:
+    decisions = workspace / "decisions"
+    decisions.mkdir(exist_ok=True)
+    lines = [
+        f"decision_id: {decision_id}\n",
+        f"subject:\n  loop_id: LOOP-001\n  iteration: {iteration}\n",
+        f"new_max_iterations: {new_max_iterations}\n",
+        f"decided_by:\n  kind: human\n  id: {actor}\n",
+        f"decided_at: '{NOW}'\n",
+        f"reason: {reason}\n",
+    ]
+    if supersedes is not None:
+        lines.append(f"supersedes: {supersedes}\n")
+    (decisions / f"{decision_id.lower()}.yaml").write_text(
+        "".join(lines), encoding="utf-8"
+    )
+
+
+def test_resume_refuses_supersedes_cycle(loop_ws: Path) -> None:
+    """A mutual-supersedes cycle is a typed LoopError, fail-closed.
+
+    Both edges are inadmissible: neither may deactivate anything, so the
+    active-set computation must never even run — the runner refuses up
+    front, the same posture as the self/dangling/foreign branch.
+    """
+    from impresario.loop import LoopError, resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    _write_lrd(
+        loop_ws,
+        "LRD-001",
+        iteration=1,
+        new_max_iterations=3,
+        supersedes="loop-resume-decision://LRD-002",
+    )
+    _write_lrd(
+        loop_ws,
+        "LRD-002",
+        iteration=1,
+        new_max_iterations=3,
+        supersedes="loop-resume-decision://LRD-001",
+    )
+    with pytest.raises(LoopError, match="cycle"):
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"]["verdict"] == "needs_human"  # waiting stays active
+
+
+def test_resume_consumes_latest_of_a_superseded_chain(loop_ws: Path) -> None:
+    """LRD-002 supersedes LRD-001 (same identity): resume must consume LRD-002."""
+    from impresario.loop import resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    _write_lrd(loop_ws, "LRD-001", iteration=1, new_max_iterations=3)
+    _write_lrd(
+        loop_ws,
+        "LRD-002",
+        iteration=1,
+        new_max_iterations=4,
+        supersedes="loop-resume-decision://LRD-001",
+    )
+    ref = resume_loop(
+        loop_ws,
+        CONTRACTS_DIR,
+        max_iterations=4,
+        actor="andrei",
+        reason="r",
+        now_iso=NOW,
+    )
+    assert ref == "loop-resume-decision://LRD-002"
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["max_iterations"] == 4
+
+
+def test_cli_resume_prints_decision_ref(
+    loop_ws: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """`forconcept resume` prints ok=True and the consumed decision ref."""
+    from impresario.cli import main
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    code = main(
+        [
+            "forconcept",
+            "resume",
+            str(loop_ws),
+            "--max-iterations",
+            "3",
+            "--actor",
+            "andrei",
+            "--reason",
+            "r",
+            "--contracts",
+            str(CONTRACTS_DIR),
+        ]
+    )
+    out = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert out["ok"] is True
+    assert out["decision"] == "loop-resume-decision://LRD-001"
+
+
+def test_resume_ignores_unrelated_invalid_lrd(loop_ws: Path) -> None:
+    """Невалидный LRD чужой identity не блокирует resume этого ожидания.
+
+    Его валидность — дело bundle-валидатора; consume-путь проверяет
+    только решения, способные авторизовать текущее ожидание.
+    """
+    from impresario.loop import resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    decisions = loop_ws / "decisions"
+    decisions.mkdir(exist_ok=True)
+    (decisions / "lrd-009.yaml").write_text(
+        "decision_id: LRD-009\n"
+        "subject:\n  loop_id: LOOP-999\n  iteration: 0\n"
+        "new_max_iterations: 2\n"
+        "decided_by:\n  kind: agent\n  id: bot\n"  # не human — schema fail
+        f"decided_at: '{NOW}'\n"
+        "reason: r\n",
+        encoding="utf-8",
+    )
+    ref = resume_loop(
+        loop_ws,
+        CONTRACTS_DIR,
+        max_iterations=3,
+        actor="andrei",
+        reason="r",
+        now_iso=NOW,
+    )
+    assert ref == "loop-resume-decision://LRD-010"  # LRD-009 занят чужим
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"] is None
+    assert state["max_iterations"] == 3
+
+
+def test_resume_blocks_on_unreadable_subject_lrd(loop_ws: Path) -> None:
+    """LRD без читаемого subject нельзя доказать чужим — fail-closed."""
+    from impresario.loop import LoopError, resume_loop
+
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    decisions = loop_ws / "decisions"
+    decisions.mkdir(exist_ok=True)
+    (decisions / "lrd-009.yaml").write_text(
+        "decision_id: LRD-009\n"
+        "new_max_iterations: 2\n"
+        "decided_by:\n  kind: human\n  id: andrei\n"
+        f"decided_at: '{NOW}'\n"
+        "reason: r\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(LoopError, match="invalid loop-resume-decision"):
+        resume_loop(
+            loop_ws,
+            CONTRACTS_DIR,
+            max_iterations=3,
+            actor="andrei",
+            reason="r",
+            now_iso=NOW,
+        )
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"]["verdict"] == "needs_human"

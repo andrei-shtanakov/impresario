@@ -12,7 +12,7 @@ from .report import Finding
 
 _REF_RE = re.compile(
     r"^(idea|assessment|backlog|research-pack|concept-draft"
-    r"|exchange-log|proposal|gate-decision)://\S+$"
+    r"|exchange-log|proposal|gate-decision|loop-resume-decision)://\S+$"
 )
 
 _KIND_TO_SCHEME = {
@@ -24,6 +24,7 @@ _KIND_TO_SCHEME = {
     "exchange-log": "exchange-log",
     "product-proposal": "proposal",
     "gate-decision": "gate-decision",
+    "loop-resume-decision": "loop-resume-decision",
     # run:// is not a resolvable ref scheme (last_run_id is a plain id), but
     # every doc needs a canonical ref for the known-set in check_refs.
     "run-record": "run",
@@ -461,6 +462,110 @@ def check_loop_states(docs: list[Doc]) -> list[Finding]:
     return findings
 
 
+def _lrd_identity(doc: Doc) -> tuple[Any, Any]:
+    subject = doc.data.get("subject") or {}
+    return (subject.get("loop_id"), subject.get("iteration"))
+
+
+def check_loop_resume_decisions(docs: list[Doc]) -> list[Finding]:
+    """LoopResumeDecision: loop resolution, budget floor, active-set.
+
+    Active-set is computed over admissible supersedes edges only: an edge
+    is admissible when it resolves within the bundle to a decision of the
+    same identity and is neither a self-loop nor part of a cycle.
+    Inadmissible edges are findings and never deactivate anything (spec:
+    docs/superpowers/specs/2026-08-15-loop-resume-decision-design.md).
+    Dangling supersedes is REF_DANGLING territory (check_refs), not ours.
+    """
+    findings: list[Finding] = []
+    lrds = [d for d in docs if d.kind == "loop-resume-decision"]
+    if not lrds:
+        return findings
+    loops = [d for d in docs if d.kind == "loop-state"]
+
+    def err(doc: Doc, code: str, message: str) -> None:
+        findings.append(Finding(code=code, path=str(doc.path), message=message))
+
+    for doc in lrds:
+        loop_id, iteration = _lrd_identity(doc)
+        matching = [d for d in loops if d.data.get("loop_id") == loop_id]
+        if len(matching) != 1:
+            err(
+                doc,
+                "LRD_LOOP",
+                f"subject.loop_id {loop_id} matches {len(matching)} "
+                "loop-state doc(s) in bundle (expected exactly 1)",
+            )
+        floor = int(iteration or 0) + 2
+        if int(doc.data.get("new_max_iterations") or 0) < floor:
+            err(
+                doc,
+                "LRD_BUDGET",
+                f"new_max_iterations {doc.data.get('new_max_iterations')} < "
+                f"subject.iteration + 2 = {floor} (needs_human at 0-based "
+                "iteration i means budget i+1 was exhausted)",
+            )
+
+    by_id = {
+        d.data["decision_id"]: d
+        for d in lrds
+        if isinstance(d.data.get("decision_id"), str)
+    }
+    edges: dict[str, str] = {}
+    for doc in lrds:
+        raw = doc.data.get("supersedes")
+        if not isinstance(raw, str):
+            continue
+        src_id = doc.data.get("decision_id")
+        target_id = raw.removeprefix("loop-resume-decision://")
+        target = by_id.get(target_id)
+        if target is None or not isinstance(src_id, str):
+            continue  # dangling ref: REF_DANGLING owns that finding
+        if target_id == src_id:
+            err(doc, "LRD_SUPERSEDES", f"{src_id} supersedes itself")
+            continue
+        if _lrd_identity(target) != _lrd_identity(doc):
+            err(
+                doc,
+                "LRD_SUPERSEDES",
+                f"{src_id} supersedes {target_id} of a different identity "
+                f"{_lrd_identity(target)} != {_lrd_identity(doc)}",
+            )
+            continue
+        edges[src_id] = target_id
+
+    in_cycle: set[str] = set()
+    for start in edges:
+        walked: list[str] = []
+        node = start
+        while node in edges and node not in walked:
+            walked.append(node)
+            node = edges[node]
+        if node in walked:
+            in_cycle.update(walked[walked.index(node) :])
+    for src in sorted(in_cycle):
+        err(by_id[src], "LRD_SUPERSEDES", f"{src} is part of a supersedes cycle")
+
+    superseded = {t for s, t in edges.items() if s not in in_cycle}
+    groups: dict[tuple[Any, Any], list[Doc]] = {}
+    for doc in lrds:
+        groups.setdefault(_lrd_identity(doc), []).append(doc)
+    for identity, group in groups.items():
+        active = sorted(
+            (d for d in group if d.data.get("decision_id") not in superseded),
+            key=lambda d: str(d.data.get("decision_id")),
+        )
+        if len(active) > 1:
+            ids = ", ".join(str(d.data.get("decision_id")) for d in active)
+            err(
+                active[0],
+                "LRD_DUP",
+                f"identity {identity} has {len(active)} active decisions "
+                f"({ids}); expected at most 1",
+            )
+    return findings
+
+
 def run_bundle_checks(docs: list[Doc]) -> list[Finding]:
     """Run all cross-artifact checks over a bundle."""
     findings: list[Finding] = []
@@ -470,4 +575,5 @@ def run_bundle_checks(docs: list[Doc]) -> list[Finding]:
     findings.extend(check_concept_drafts(docs))
     findings.extend(check_exchange_logs(docs))
     findings.extend(check_loop_states(docs))
+    findings.extend(check_loop_resume_decisions(docs))
     return findings

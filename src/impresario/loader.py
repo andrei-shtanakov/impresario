@@ -18,6 +18,7 @@ CONTRACT_KINDS: tuple[str, ...] = (
     "exchange-log",
     "product-proposal",
     "gate-decision",
+    "loop-resume-decision",
     "run-record",
     "loop-state",
 )
@@ -71,6 +72,9 @@ def detect_kind(data: dict[str, Any]) -> str:
     if "proposal_id" in data:
         return "product-proposal"
     if "decision_id" in data:
+        raw_decision_id = data["decision_id"]
+        if isinstance(raw_decision_id, str) and raw_decision_id.startswith("LRD-"):
+            return "loop-resume-decision"
         return "gate-decision"
     if "run_id" in data:  # after assessment_id: assessments carry run_id too
         return "run-record"

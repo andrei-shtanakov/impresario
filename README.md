@@ -143,6 +143,10 @@ single-writer lock.
 | `RP_STALE` | ConceptDraft ссылается на устаревший ResearchPack при доступном более свежем |
 | `ALTERNATIVES_MISSING` | Меньше 3 альтернатив без `single_path_justification` при статусе ≥ `ready_for_business` |
 | `XLOG_ORDER` | Итерации ExchangeLog не монотонны |
+| `LRD_LOOP` | `subject.loop_id` решения resume не резолвится ровно в один loop.state бандла |
+| `LRD_BUDGET` | `new_max_iterations` решения resume меньше `subject.iteration + 2` |
+| `LRD_SUPERSEDES` | Недопустимое ребро `supersedes` (самоссылка, цикл, чужая identity) |
+| `LRD_DUP` | Больше одного активного решения resume на одно ожидание |
 
 Отчёт — JSON в stdout (`ok`, `checked`, `errors[]`) при любом исходе.
 Сравнение времён решений — парсинг RFC 3339, не лексикографика.
@@ -158,7 +162,7 @@ single-writer lock.
 ## Разработка
 
 ```bash
-uv run pytest          # 51 тест: fixtures + кросс-чеки + CLI
+uv run pytest          # 159 тестов: fixtures + кросс-чеки + CLI
 uv run ruff format . && uv run ruff check .
 uv run pyrefly check
 ```

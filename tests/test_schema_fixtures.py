@@ -50,3 +50,17 @@ def test_fixture_coverage() -> None:
                 for p in (contract_dir / "fixtures" / polarity).glob(f"*.{suffix}")
             ]
             assert found, f"{name}: no {polarity} fixtures"
+
+
+def test_detect_kind_lrd_prefix() -> None:
+    from impresario.loader import detect_kind
+
+    assert (
+        detect_kind({"decision_id": "LRD-001", "subject": {}}) == "loop-resume-decision"
+    )
+
+
+def test_detect_kind_gd_prefix_stays_gate_decision() -> None:
+    from impresario.loader import detect_kind
+
+    assert detect_kind({"decision_id": "GD-001"}) == "gate-decision"
