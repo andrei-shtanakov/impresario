@@ -528,3 +528,19 @@ def test_cli_forconcept_step_typed_error_is_exit_2(
     )
     out = json.loads(capsys.readouterr().out)
     assert code == 2 and out["ok"] is False
+
+
+def test_cli_forconcept_brief_terminal_marker_is_exit_2(loop_ws: Path, capsys) -> None:  # noqa: F811 - pytest fixture reuse
+    """derive_next_call's TERMINAL HarnessError surfaces end-to-end through
+    `main()`: exit 2, JSON error carries the literal marker (review fix
+    round 1 — the hold-state markers were unit-tested on derive_next_call
+    directly but never exercised through the CLI dispatch)."""
+    from impresario.cli import main
+
+    run_scripted(loop_ws, HAPPY_SCRIPT)  # drives to a terminal verdict
+
+    code = main(["forconcept", "brief", str(loop_ws)])
+    out = json.loads(capsys.readouterr().out)
+    assert code == 2
+    assert out["ok"] is False
+    assert "TERMINAL" in out["error"]

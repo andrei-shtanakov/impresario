@@ -221,7 +221,7 @@ single-writer lock.
 ## Разработка
 
 ```bash
-uv run pytest          # 251 тест: fixtures + кросс-чеки + CLI
+uv run pytest          # 252 теста: fixtures + кросс-чеки + CLI
 uv run ruff format . && uv run ruff check .
 uv run pyrefly check
 ```
