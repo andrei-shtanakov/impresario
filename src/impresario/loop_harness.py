@@ -224,3 +224,227 @@ def render_stage_brief(
         "iteration": iteration,
         "path": str(path),
     }
+
+
+def _assemble_artifact(
+    brief: dict[str, Any],
+    answer: dict[str, Any],
+    workspace: Path,
+    contracts_dir: Path,
+    *,
+    actor: str,
+    model: str,
+    now_iso: str,
+) -> dict[str, Any]:
+    """Полный RP/CD: контент из answer + bookkeeping из brief/loop.state."""
+    state = _read_state(workspace, contracts_dir)
+    role = brief["role"]
+    if role == "researcher":
+        kind, prefix = "research-pack", "RP"
+    else:
+        kind, prefix = "concept-draft", "CD"
+    existing = {d.data["id"] for d in _docs_of_kind(workspace, kind)}
+    artifact_id = ws.next_id(prefix, existing_ids=existing)
+    content = {k: v for k, v in answer.items() if k != "schema_version"}
+    doc: dict[str, Any] = {
+        "id": artifact_id,
+        "idea_ref": state["idea_ref"],
+        "proposal_ref": f"proposal://{state['proposal_id']}",
+        "iteration": brief["iteration"],
+        **content,
+        "produced_by": {
+            "kind": "agent",
+            "id": actor,
+            "model": model,
+            "prompt_version": brief["prompt_version"],
+        },
+        "produced_at": now_iso,
+        "provenance": {
+            "brief_id": brief["brief_id"],
+            "prompt_pack_hash": brief["prompt_pack_hash"],
+        },
+    }
+    if role == "creator":
+        rps = _docs_of_kind(workspace, "research-pack")
+        rp = _find_iteration(rps, brief["iteration"])
+        if rp is None:
+            raise HarnessError(
+                "STALE_BRIEF: no research pack for the brief's iteration"
+            )
+        doc["based_on_research"] = {
+            "ref": f"research-pack://{rp.data['id']}",
+            "iteration": brief["iteration"],
+        }
+    return doc
+
+
+def step_loop(
+    workspace: Path,
+    contracts_dir: Path,
+    prompts_dir: Path,
+    *,
+    brief_path: Path,
+    answer_path: Path,
+    actor: str,
+    model: str,
+    now_iso: str,
+) -> dict[str, Any]:
+    """Нормативный протокол шага (спека): brief → идемпотентность →
+    freshness → answer → пре-валидация сборки → раннер.
+
+    `prompts_dir` is accepted for interface symmetry with the brief
+    render (`forconcept step` takes the same flags as `forconcept
+    brief`); step itself never re-renders a prompt pack.
+    """
+    from .agents import SingleAnswerAgent
+    from .loop import run_loop
+
+    validators = load_validators(contracts_dir)
+
+    # 1. Brief: схема + двухслойный пересчёт identity.
+    brief_doc = load_doc(brief_path)
+    if brief_doc.kind != "stage-brief":
+        raise HarnessError(f"{brief_path}: not a stage-brief")
+    findings = check_schema(brief_doc, validators)
+    if findings:
+        raise HarnessError(
+            f"{brief_path}: invalid brief: " + "; ".join(f.message for f in findings)
+        )
+    brief = brief_doc.data
+    if sha256_bytes(brief["prompt"].encode("utf-8")) != brief["prompt_hash"]:
+        raise HarnessError(
+            f"{brief_path}: BRIEF_IDENTITY: prompt bytes do not match prompt_hash"
+        )
+    if stage_brief_identity(brief) != brief["brief_id"]:
+        raise HarnessError(
+            f"{brief_path}: BRIEF_IDENTITY: brief_id does not match the recompute"
+        )
+
+    role = brief["role"]
+    kind = "research-pack" if role == "researcher" else "concept-draft"
+
+    # 2. Идемпотентность — ДО freshness (спека: потреблённый brief после
+    # продвижения workspace иначе был бы отвергнут как stale).
+    answer_doc = load_doc(answer_path)
+    expected_answer_kind = (
+        "research-answer" if role == "researcher" else "concept-answer"
+    )
+    consumed = next(
+        (
+            d
+            for d in _docs_of_kind(workspace, kind)
+            if (d.data.get("provenance") or {}).get("brief_id") == brief["brief_id"]
+        ),
+        None,
+    )
+    if consumed is not None:
+        if answer_doc.kind != expected_answer_kind:
+            raise HarnessError(f"{answer_path}: not a {expected_answer_kind}")
+        candidate = _assemble_artifact(
+            brief,
+            answer_doc.data,
+            workspace,
+            contracts_dir,
+            actor=actor,
+            model=model,
+            now_iso=now_iso,
+        )
+        existing_cmp = {
+            k: v for k, v in consumed.data.items() if k not in ("id", "produced_at")
+        }
+        candidate_cmp = {
+            k: v for k, v in candidate.items() if k not in ("id", "produced_at")
+        }
+        if existing_cmp == candidate_cmp:
+            return {
+                "ok": True,
+                "noop": True,
+                "artifact": {
+                    "id": consumed.data["id"],
+                    "path": str(consumed.path),
+                },
+                "runner": None,
+            }
+        raise HarnessError(
+            f"STEP_CONFLICT: brief {brief['brief_id']} already consumed as "
+            f"{consumed.data['id']} with a different answer/actor/model"
+        )
+
+    # 3. Freshness + структурная проверка пары.
+    expected_role, expected_iteration = derive_next_call(workspace, contracts_dir)
+    state = _read_state(workspace, contracts_dir)
+    idea = load_doc(workspace / "idea.yaml")
+    proposal = load_doc(workspace / "proposal.yaml")
+    fresh = {
+        "loop_id": state["loop_id"],
+        "iteration": expected_iteration,
+        "role": expected_role,
+        "idea_input_hash": canonical_doc_hash(idea.data),
+        "proposal_hash": canonical_doc_hash(proposal.data),
+        "history_hash": history_hash(history_entries(workspace)),
+    }
+    for field, value in fresh.items():
+        if brief.get(field) != value:
+            raise HarnessError(
+                f"STALE_BRIEF: {field} of the brief does not match the "
+                f"workspace's current expected stage ({brief.get(field)!r} "
+                f"!= {value!r})"
+            )
+
+    # 4. Answer: схема роли.
+    if answer_doc.kind != expected_answer_kind:
+        raise HarnessError(f"{answer_path}: not a {expected_answer_kind}")
+    findings = check_schema(answer_doc, validators)
+    if findings:
+        raise HarnessError(
+            f"{answer_path}: invalid answer: " + "; ".join(f.message for f in findings)
+        )
+
+    # 5. Пре-валидация полностью собранного артефакта: путь раннера для
+    # невалидного артефакта персистит терминальный failed — слишком
+    # разрушительно для ошибки ingest; раннер остаётся defense-in-depth.
+    artifact = _assemble_artifact(
+        brief,
+        answer_doc.data,
+        workspace,
+        contracts_dir,
+        actor=actor,
+        model=model,
+        now_iso=now_iso,
+    )
+    findings = check_schema(
+        Doc(
+            path=workspace / f"{artifact['id'].lower()}.yaml",
+            kind=kind,
+            data=artifact,
+        ),
+        validators,
+    )
+    if findings:
+        raise HarnessError(
+            "refusing to run: assembled artifact is invalid: "
+            + "; ".join(f.message for f in findings)
+        )
+
+    # 6. Раннер — единственный исполнитель.
+    stop_after = (
+        f"research:{expected_iteration}"
+        if role == "researcher"
+        else f"iteration:{expected_iteration}"
+    )
+    result = run_loop(
+        workspace,
+        contracts_dir,
+        SingleAnswerAgent(role, expected_iteration, artifact),
+        now_iso=now_iso,
+        stop_after=stop_after,
+    )
+    return {
+        "ok": True,
+        "noop": False,
+        "artifact": {
+            "id": artifact["id"],
+            "path": str(workspace / f"{artifact['id'].lower()}.yaml"),
+        },
+        "runner": {"verdict": result.verdict, "iteration": result.iteration},
+    }
