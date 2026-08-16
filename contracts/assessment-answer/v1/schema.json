@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:impresario:contract:assessment-answer:v1",
+  "title": "AssessmentAnswer",
+  "description": "Только суждение LLM-оценщика: оценки по осям, blockers с якорями, rationale, evidence, confidence. Никаких identity/hash/bookkeeping-полей — additionalProperties: false их отвергает (урок friction №15). schema_version — маркер формата (детекция kind), не bookkeeping авторства.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "fit_strategy",
+    "fit_market",
+    "fit_standards",
+    "strategy_blocker",
+    "standards_blocker",
+    "rationale",
+    "evidence_refs",
+    "confidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "assessment-answer/v1"
+    },
+    "fit_strategy": {
+      "$ref": "#/$defs/axisScore"
+    },
+    "fit_market": {
+      "$ref": "#/$defs/axisScore"
+    },
+    "fit_standards": {
+      "$ref": "#/$defs/axisScore"
+    },
+    "strategy_blocker": {
+      "type": "boolean"
+    },
+    "strategy_blocker_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "standards_blocker": {
+      "type": "boolean"
+    },
+    "standards_blocker_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rationale": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fit_strategy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fit_market": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fit_standards": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "confidence": {
+      "enum": ["high", "medium", "low"]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "strategy_blocker": { "const": true } }
+      },
+      "then": { "required": ["strategy_blocker_ref"] }
+    },
+    {
+      "if": {
+        "properties": { "standards_blocker": { "const": true } }
+      },
+      "then": { "required": ["standards_blocker_ref"] }
+    }
+  ],
+  "$defs": {
+    "axisScore": {
+      "oneOf": [
+        { "type": "integer", "minimum": 1, "maximum": 5 },
+        { "const": "unknown" }
+      ]
+    }
+  }
+}

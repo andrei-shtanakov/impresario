@@ -1,0 +1,13 @@
+schema_version: assessment-answer/v1
+fit_strategy: 5
+fit_market: unknown
+fit_standards: 5
+strategy_blocker: false
+standards_blocker: false
+rationale:
+  fit_strategy: "Прямое попадание в G-5."
+  fit_market: "Замеров внутреннего спроса нет — честный unknown."
+  fit_standards: "Соответствует всем требованиям."
+evidence_refs:
+  - "strategy://ecosystem/2026/G-5"
+confidence: high
