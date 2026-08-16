@@ -84,9 +84,16 @@
 
 ## M3 — Kapelle battle-test
 
-- [ ] Kapelle как execution backend цикла: вендорить пинованные копии
-  contracts + reference runner как oracle (см. kapelle battle-testing трек;
-  урок M2: различать terminal verdict и retryable-инфраструктуру)
+- [x] **Kapelle как execution backend цикла — ЗАКРЫТ 2026-08-16**:
+  вендоринг восьми контрактов @ merge `8082e53` (PIN + drift-вахта),
+  resume-адаптер как чистый консьюмер LRD (kapelle TASK-106, PR #21),
+  полная parity-матрица по golden-oracle (happy / needs-human / resume /
+  invalid-artifact / crash; kapelle PR #22/#23) и fault-матрица всех
+  шести обязательных точек (TASK-107, PR #25). Урок M2 подтвердился
+  буквально: battle-test поймал 6+ реальных дефектов — сводка
+  `pilot/friction-log.md` №17–21; семантический ruling (dangling
+  supersedes = отказ потребления) закреплён в docs/semantics.md.
+  Остаток за kapelle: reserve для review в конфиге контура (№21)
 - [x] Зарегистрировать репо в списке зеркал Robin — robin-runtime PR #44
   (после мержа: клонировать зеркало на VPS руками, CD этого не делает)
 - [x] **impresario#14 закрыт (сторона impresario)**: контракт
