@@ -1,0 +1,35 @@
+assessment_id: ASMT-110
+idea_ref: idea://IDEA-102
+run_id: RUN-003
+input_hash: sha256:7d84f6906e5a202ebb01bb63c7b5625e989ed22e3fb3ed06637de74350ac5b41
+policy_version: scoring/v1
+evidence_refs:
+- strategy://ecosystem/2026/G-5
+- standards://ecosystem/STD-5
+- 'devtools: триггер fleet-plan-check сработал (memory next-session-arch-followups, 2026-08-08)'
+fit_strategy: 3
+fit_market: 2
+fit_standards: 4
+strategy_blocker: false
+standards_blocker: false
+rationale:
+  fit_strategy: Поддерживает G-5 (дрейф планов видим) и гигиену G-4, но ни одна цель не называет
+    планы-линтер прямо; вклад косвенный.
+  fit_market: Единственная улика спроса — один сработавший триггер в source; частота ручных
+    обходов и их цена не зафиксированы. Балл низкий из-за тонкости улик, не доказанного отсутствия
+    спроса.
+  fit_standards: 'Укрепляет STD-5 (канон-first: планы в репо-владельцах) и не конфликтует
+    с C-2 при read-only обходе; вопрос «devtools или публичный инструмент» разрешим внутри
+    STD-5/C-1.'
+confidence: medium
+evaluator:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: prioritizer/v1
+provenance:
+  brief_id: BRF-568df37747ec
+  prompt_pack_hash: sha256:db5417a6dbe832ca7afb20fad6aadf7024f8d0b38c4f9b49cac248e21cee7228
+  strategy_hash: sha256:a72ffa3e3224bcf7c38c959ba5fc27bb57e7a18431c0f3470abaabec640d8529
+  standards_hash: sha256:90011fd12ae74de8e8bd76de45279b97ef6aca9fb7b46ce42ae10bb84a5ae7b4
+evaluated_at: '2026-08-16T15:40:15Z'

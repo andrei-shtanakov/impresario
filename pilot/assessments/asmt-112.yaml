@@ -1,0 +1,36 @@
+assessment_id: ASMT-112
+idea_ref: idea://IDEA-104
+run_id: RUN-003
+input_hash: sha256:c4fcf68949247b4aa42e894693a14459f5117b6d561089ae79d28c9180a6576d
+policy_version: scoring/v1
+evidence_refs:
+- strategy://ecosystem/2026/G-5
+- strategy://ecosystem/2026/G-4
+- standards://ecosystem/STD-2
+- standards://ecosystem/STD-3
+- impresario/docs/semantics.md + guide §10 (product_proposal/gate_waiting observation)
+fit_strategy: 5
+fit_market: 4
+fit_standards: 5
+strategy_blocker: false
+standards_blocker: false
+rationale:
+  fit_strategy: 'Двойное попадание: G-5 (ожидающие решения видимы, а не «молча слепы») и G-4
+    (governance plane — гейты и human authority как наблюдаемая поверхность).'
+  fit_market: 'Спрос задокументирован самим контуром: QG-4 и Gate A/B уже проходили с ожиданием
+    человека, и ни одна обзорная поверхность их не показывала (problem карточки + guide §10
+    в source).'
+  fit_standards: 'Read-only наблюдатель по STD-2 (fail-closed: unknown ≠ «ожиданий нет») с
+    вендорингом пинованной схемы по STD-3; authority остаётся человеческим (C-3 не задет).'
+confidence: high
+evaluator:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: prioritizer/v1
+provenance:
+  brief_id: BRF-96ca6436e7b0
+  prompt_pack_hash: sha256:db5417a6dbe832ca7afb20fad6aadf7024f8d0b38c4f9b49cac248e21cee7228
+  strategy_hash: sha256:a72ffa3e3224bcf7c38c959ba5fc27bb57e7a18431c0f3470abaabec640d8529
+  standards_hash: sha256:90011fd12ae74de8e8bd76de45279b97ef6aca9fb7b46ce42ae10bb84a5ae7b4
+evaluated_at: '2026-08-16T15:40:15Z'

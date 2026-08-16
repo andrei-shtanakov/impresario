@@ -1,0 +1,35 @@
+assessment_id: ASMT-109
+idea_ref: idea://IDEA-101
+run_id: RUN-003
+input_hash: sha256:f8cb08a88c897fa9b3bdab0e9a508f8aac27ad6e03f29f4cd32c77f604422b0b
+policy_version: scoring/v1
+evidence_refs:
+- strategy://ecosystem/2026/G-5
+- standards://ecosystem/STD-9
+- standards://ecosystem/STD-2
+- 'prograph-vault: robin digest coverage — дайджесты покрывают 6/12 зеркал (memory 2026-07)'
+fit_strategy: 5
+fit_market: 4
+fit_standards: 5
+strategy_blocker: false
+standards_blocker: false
+rationale:
+  fit_strategy: 'Прямое попадание в G-5: «молча слеп» назван классом дефекта, идея устраняет
+    ровно его; попутно укрепляет evidence-поверхность G-4.'
+  fit_market: Пробел задокументирован количественно (6/12 зеркал в source), а выводы об экосистеме
+    читаются из этих дайджестов — спрос внутренний и подтверждён, но замера цены слепых зон
+    нет.
+  fit_standards: Буквальная реализация STD-9 (наблюдаемость изменений, «молча слеп» — дефект);
+    exempt-правила укладываются в STD-2 (явный enforcement вместо неизвестности-как-зелёного).
+confidence: high
+evaluator:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: prioritizer/v1
+provenance:
+  brief_id: BRF-8d994b63c131
+  prompt_pack_hash: sha256:db5417a6dbe832ca7afb20fad6aadf7024f8d0b38c4f9b49cac248e21cee7228
+  strategy_hash: sha256:a72ffa3e3224bcf7c38c959ba5fc27bb57e7a18431c0f3470abaabec640d8529
+  standards_hash: sha256:90011fd12ae74de8e8bd76de45279b97ef6aca9fb7b46ce42ae10bb84a5ae7b4
+evaluated_at: '2026-08-16T15:40:15Z'

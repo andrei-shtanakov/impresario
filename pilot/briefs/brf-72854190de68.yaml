@@ -1,0 +1,89 @@
+brief_id: BRF-72854190de68
+idea_ref: idea://IDEA-108
+input_hash: sha256:92005983dd804bed25bf3f9ad283b1bc5a5a156356c55d3bc67507219d63a7d4
+prompt_version: prioritizer/v1
+prompt_pack_hash: sha256:db5417a6dbe832ca7afb20fad6aadf7024f8d0b38c4f9b49cac248e21cee7228
+policy_version: scoring/v1
+strategy_hash: sha256:a72ffa3e3224bcf7c38c959ba5fc27bb57e7a18431c0f3470abaabec640d8529
+standards_hash: sha256:90011fd12ae74de8e8bd76de45279b97ef6aca9fb7b46ce42ae10bb84a5ae7b4
+prompt_hash: sha256:fc7207d532c7b295a0ab7c67bb80b0a00ff94e6e1abc9760efd0d7596448ffbc
+prompt: "# Оценщик идей — prioritizer/v1\n\nТы — оценщик product-governance контура. Оцени\
+  \ ОДНУ идею по трём осям\nпротив стратегии и реестра стандартов ниже. Твой ответ материализует\n\
+  детерминированный инструмент; ты авторишь только суждение.\n\n## Правила суждения\n\n1.\
+  \ Шкала осей: целое 1..5 либо строка `unknown`. Если улик нет —\n   честный `unknown`, не\
+  \ догадка (замеров нет ≠ спроса нет).\n2. Blocker — только доказанный: `strategy_blocker`/`standards_blocker`\n\
+  \   ставь `true` только с конкретной якорной ссылкой в\n   `strategy_blocker_ref`/`standards_blocker_ref`\
+  \ вида\n   `strategy://ecosystem/2026/C-x` или `standards://ecosystem/STD-x`.\n   Ссылка\
+  \ на файл целиком — не якорь. Score ранжирует, blocker\n   исключает; это разные утверждения.\n\
+  3. Evidence: в `evidence_refs` — только реально существующие якоря и\n   источники из материалов\
+  \ ниже. Никаких плейсхолдеров, выдуманных\n   ссылок и «пример: ...». Пустой список лучше\
+  \ выдуманного.\n4. Актуальность: прежде чем цитировать подтверждающее evidence,\n   проверь\
+  \ по материалам, нет ли более ПОЗДНЕЙ отменяющей записи;\n   решение, отменённое позже,\
+  \ — не evidence.\n5. `rationale` по каждой оси — одно-два предложения со ссылками на\n \
+  \  конкретные якоря, без пересказа всей идеи.\n\n## Формат ответа\n\nВерни РОВНО один YAML-документ\
+  \ (без Markdown-ограждений и пояснений):\n\nschema_version: assessment-answer/v1\nfit_strategy:\
+  \ <1..5 | unknown>\nfit_market: <1..5 | unknown>\nfit_standards: <1..5 | unknown>\nstrategy_blocker:\
+  \ <true | false>\nstrategy_blocker_ref: \"<якорь, только при true>\"\nstandards_blocker:\
+  \ <true | false>\nstandards_blocker_ref: \"<якорь, только при true>\"\nrationale:\n  fit_strategy:\
+  \ \"<...>\"\n  fit_market: \"<...>\"\n  fit_standards: \"<...>\"\nevidence_refs:\n  - \"\
+  <якорь или источник>\"\nconfidence: <high | medium | low>\n\nНе добавляй НИКАКИХ других\
+  \ полей: идентификаторы, хеши и метки времени\nавторит инструмент, не ты.\n\n## Идея\n\n\
+  id: IDEA-108\ntitle: 'spec-runner: параллельное исполнение независимых задач (H-2)'\ndate:\
+  \ '2026-08-12'\nsource:\n  kind: rd\n  ref: 'spec-runner: хвост H-2 после gates v1.2–v1.3\
+  \ (memory maestro-gates-v12, 2026-07-13)'\npriority: low\nbusiness_attractiveness: 2\nstatus:\
+  \ new\ntype: enhancement\nhypothesis: Параллельный запуск независимых TASK-ов сократит wall-clock\
+  \ прогонов spec-runner\n  на многозадачных спеках, сохранив детерминизм отчётов; выгода\
+  \ — быстрые циклы для больших\n  спек без изменения контрактов.\nessence: Scheduler независимых\
+  \ задач внутри одного прогона spec-runner.\nproblem: Большие спеки исполняются строго последовательно.\n\
+  open_questions:\n- Как параллелизм уживается с gates и последовательной семантикой отчёта?\n\
+  \n\n## Стратегия экосистемы\n\n# Стратегия экосистемы — 2026\n\nВходной артефакт для оси\
+  \ `fit_strategy` (Stage 4 pilot). Выжимка живой\nстратегической поверхности экосистемы (ecosystem\
+  \ roadmap 2026-07-08 + канон\ndark factory 2026-07-11); при расхождении канон — vault.\n\
+  \n**Ref-грамматика:** `strategy://ecosystem/2026/<anchor>`, где `<anchor>` —\nидентификатор\
+  \ цели/ограничения ниже (например,\n`strategy://ecosystem/2026/G-2`).\n\n## Цели\n\n###\
+  \ G-1. Dark factory: contracts-first автономный SDLC\n\nПуть к производству ПО с минимальным\
+  \ человеческим участием на исполнении и\nобязательным человеческим authority на решениях.\
+  \ Всё, что между инструментами,\n— версионированный контракт с fixtures и валидатором; «неизвестность\
+  \ как\nзелёное» — дефект.\n\n### G-2. Routing-grade данные и провайдеро-независимый слой\
+  \ моделей\n\nATP как источник данных для маршрутизации (cost, pass-rate, provenance),\n\
+  arbiter как дом provider-независимого routing. Не зависеть от одного hosted\nкаталога моделей.\n\
+  \n### G-3. Enterprise-качество оркестрации: recoverability + audit trail\n\nMaestro-линия:\
+  \ восстановимость после сбоя, инструментированные\nruntime-решения, полный audit trail.\
+  \ Отличие enterprise-оркестратора от\nигрушки. Сюда же battle-testing исполняющих контуров\
+  \ (kapelle).\n\n### G-4. Governance plane: гейты, evidence, human authority\n\nКанон → registry\
+  \ → gates → консоль. Каждый инвариант имеет enforcement\npoint; authority-решения принимает\
+  \ человек и они материализуются immutable\nrecords. Product-governance контур (этот репозиторий)\
+  \ — верхняя половина\nтой же оси.\n\n### G-5. Наблюдаемость как фундамент\n\nRead-only обзор\
+  \ экосистемы (dispatcher, Robin): дрейф, пробелы покрытия,\nliveness — видимы; «молча слеп»\
+  \ — класс дефекта, не норма.\n\n## Ограничения (портфельные)\n\n### C-1. Публичность экосистемы\n\
+  \nРепозитории экосистемы публичные. Приватный/клиентский контент (включая\nEPAM-контексты)\
+  \ в них не попадает; методологии с ограниченным доступом\nживут вне экосистемы и не вендорятся.\n\
+  \n### C-2. Полирепо и границы владения\n\nОдин владелец на зону; кросс-репные контракты\
+  \ — пинованные копии внутрь.\nИнициатива, требующая размыть границы владения, конфликтует\
+  \ со стратегией.\n\n### C-3. Человеческий authority\n\nИнициативы, в которых агент самостоятельно\
+  \ закрывает гейты или мержит,\nзапрещены (формальный запрет, не низкий балл).\n\n\n## Реестр\
+  \ стандартов\n\n# Реестр стандартов экосистемы\n\nВходной артефакт для оси `fit_standards`\
+  \ (Stage 4 pilot). Выжимка\nдействующих правил экосистемы (SSOT — `prograph-vault/authored/rules/`\n\
+  и CLAUDE.md репозиториев).\n\n**Ref-грамматика:** `standards://ecosystem/<ID>` (например,\n\
+  `standards://ecosystem/STD-2`).\n\n## Процесс и governance\n\n### STD-1. PR-only, мерж —\
+  \ человек\n\nИзменения в репо с remote — только через PR; ревью отрабатывается; мержит\n\
+  человек. Прямые коммиты в default-ветку запрещены (исключение — bootstrap).\n\n### STD-2.\
+  \ Fail-closed с enforcement point\n\nЗаявленный инвариант обязан иметь класс enforcement\n\
+  (`schema | tool | human/process | planned`). Зелёный гейт не доказательство,\nпока fail-closed\
+  \ не покрывает сам прибор (оракул, exit-семантика,\nprovenance).\n\n### STD-3. Вендоринг\
+  \ контрактов с двумя гарантиями\n\nКросс-репный контракт потребляется пинованной копией\
+  \ внутрь; у копии две\nгарантии: copy-integrity (PR-гейт) и upstream-drift (scheduled watcher).\n\
+  \n### STD-4. Immutable decision records + human authority\n\nAuthority-решения (гейты, waivers,\
+  \ мержи) — записи с actor identity,\nверсией предмета и причинами; исправление — новой записью,\
+  \ не правкой\nстарой.\n\n### STD-5. Канон-first / SSOT\n\nКанонические факты живут в репо-владельце.\
+  \ `_cowork_output/` — dev-only,\nне SSOT и не runtime-зависимость.\n\n## Данные и безопасность\n\
+  \n### STD-6. Публичный контур без приватного контента\n\nВ публичных репо не появляются\
+  \ секреты, клиентские данные и приватные\nметодологии. Секреты — только env; KB и конфиги\
+  \ их не содержат.\n\n### STD-7. Durable state — восстановимый\n\nСостояние процессов crash-safe\
+  \ (класс решений: SQLite WAL,\nvalidate-then-atomic-replace, монотонные версии, idempotency\
+  \ keys);\nскрытый контекст чата состоянием не является.\n\n## Инженерные стандарты (Python-линия)\n\
+  \n### STD-8. Стек качества\n\nuv (не pip), pytest (+anyio для async), ruff (88 колонок),\
+  \ pyrefly,\ntype hints, докстринги публичных API. Новые фичи — с тестами; багфиксы —\nс\
+  \ регрессионными.\n\n### STD-9. Наблюдаемость изменений\n\nНовый репо/переименование регистрируется\
+  \ в обзорных поверхностях (зеркала\nRobin, реестры) тем же изменением; «молча слеп» — дефект.\n\
+  \n"
