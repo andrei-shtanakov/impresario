@@ -30,9 +30,19 @@ _KIND_TO_SCHEME = {
     "run-record": "run",
     # loop:// is not a resolvable ref scheme; needed only for the known-set.
     "loop-state": "loop",
+    # brief:// / answer:// are NOT resolvable ref schemes; known-set only.
+    "evaluation-brief": "brief",
+    "assessment-answer": "answer",
 }
 
-_ID_FIELDS = ("loop_id", "id", "assessment_id", "proposal_id", "decision_id")
+_ID_FIELDS = (
+    "loop_id",
+    "brief_id",
+    "id",
+    "assessment_id",
+    "proposal_id",
+    "decision_id",
+)
 
 GATED_STATUSES = ("ready_for_business", "business_approved", "approved")
 
@@ -566,6 +576,91 @@ def check_loop_resume_decisions(docs: list[Doc]) -> list[Finding]:
     return findings
 
 
+def check_briefs(docs: list[Doc]) -> list[Finding]:
+    """BRIEF_IDENTITY: prompt_hash matches the prompt bytes, and
+    brief_id matches the recompute over the identity fields (incl.
+    prompt_hash) — both layers, per the spec review 2026-08-16."""
+    from .harness import brief_identity, sha256_bytes
+
+    findings: list[Finding] = []
+    for doc in docs:
+        if doc.kind != "evaluation-brief":
+            continue
+        data = doc.data
+        prompt = data.get("prompt")
+        actual_prompt_hash = (
+            sha256_bytes(prompt.encode("utf-8")) if isinstance(prompt, str) else None
+        )
+        if actual_prompt_hash != data.get("prompt_hash"):
+            findings.append(
+                Finding(
+                    code="BRIEF_IDENTITY",
+                    path=str(doc.path),
+                    message="prompt_hash does not match the prompt bytes",
+                )
+            )
+            continue
+        try:
+            expected = brief_identity(data)
+        except KeyError as exc:
+            findings.append(
+                Finding(
+                    code="BRIEF_IDENTITY",
+                    path=str(doc.path),
+                    message=f"missing identity field {exc}",
+                )
+            )
+            continue
+        if expected != data.get("brief_id"):
+            findings.append(
+                Finding(
+                    code="BRIEF_IDENTITY",
+                    path=str(doc.path),
+                    message=(
+                        f"brief_id {data.get('brief_id')} != recomputed {expected}"
+                    ),
+                )
+            )
+    return findings
+
+
+def check_assessment_provenance(docs: list[Doc]) -> list[Finding]:
+    """ASSESS_BRIEF: the assessment -> brief chain holds in the bundle.
+
+    Assessments without provenance (manual-v0 and older) are skipped.
+    brief_id stays a plain id (no new ref scheme) — the resolution is
+    explicit here.
+    """
+    findings: list[Finding] = []
+    briefs = {d.data.get("brief_id"): d for d in docs if d.kind == "evaluation-brief"}
+    for doc in docs:
+        if doc.kind != "axis-assessment":
+            continue
+        provenance = doc.data.get("provenance")
+        if not isinstance(provenance, dict):
+            continue
+
+        def err(message: str, *, _path: str = str(doc.path)) -> None:
+            findings.append(Finding(code="ASSESS_BRIEF", path=_path, message=message))
+
+        brief = briefs.get(provenance.get("brief_id"))
+        if brief is None:
+            err(
+                f"provenance.brief_id {provenance.get('brief_id')} does not "
+                "resolve to an EvaluationBrief in this bundle"
+            )
+            continue
+        for field in ("prompt_pack_hash", "strategy_hash", "standards_hash"):
+            if provenance.get(field) != brief.data.get(field):
+                err(f"provenance.{field} != brief {field}")
+        if doc.data.get("input_hash") != brief.data.get("input_hash"):
+            err("assessment input_hash != brief input_hash")
+        evaluator = doc.data.get("evaluator") or {}
+        if evaluator.get("prompt_version") != brief.data.get("prompt_version"):
+            err("evaluator.prompt_version != brief prompt_version")
+    return findings
+
+
 def run_bundle_checks(docs: list[Doc]) -> list[Finding]:
     """Run all cross-artifact checks over a bundle."""
     findings: list[Finding] = []
@@ -576,4 +671,6 @@ def run_bundle_checks(docs: list[Doc]) -> list[Finding]:
     findings.extend(check_exchange_logs(docs))
     findings.extend(check_loop_states(docs))
     findings.extend(check_loop_resume_decisions(docs))
+    findings.extend(check_briefs(docs))
+    findings.extend(check_assessment_provenance(docs))
     return findings

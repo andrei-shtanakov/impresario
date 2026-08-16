@@ -299,3 +299,107 @@ def test_pilot_pp101_bundle_is_clean_with_backfilled_lrd() -> None:
     assert lrd.data["decided_at"] == "2026-08-12T04:01:21Z"
     report = validate_paths([pilot_ws], CONTRACTS_DIR, bundle=True)
     assert report.ok, [f"{f.code}: {f.message}" for f in report.errors]
+
+
+def _brief_doc() -> Doc:
+    from impresario.harness import brief_identity, sha256_bytes
+
+    prompt = "оцени идею\n"
+    fields = {
+        "idea_ref": "idea://IDEA-001",
+        "input_hash": "sha256:" + "a" * 64,
+        "prompt_version": "prioritizer/v1",
+        "prompt_pack_hash": "sha256:" + "b" * 64,
+        "policy_version": "scoring/v1",
+        "strategy_hash": "sha256:" + "c" * 64,
+        "standards_hash": "sha256:" + "d" * 64,
+        "prompt_hash": sha256_bytes(prompt.encode("utf-8")),
+    }
+    data = {"brief_id": brief_identity(fields), **fields, "prompt": prompt}
+    return Doc(path=Path("brf.yaml"), kind="evaluation-brief", data=data)
+
+
+def test_brief_identity_clean(bundle: list[Doc]) -> None:
+    assert "BRIEF_IDENTITY" not in _codes([*bundle, _brief_doc()])
+
+
+def test_brief_identity_tampered_prompt(bundle: list[Doc]) -> None:
+    doc = _brief_doc()
+    data = dict(doc.data, prompt=doc.data["prompt"] + "инъекция\n")
+    docs = [*bundle, Doc(path=doc.path, kind=doc.kind, data=data)]
+    assert "BRIEF_IDENTITY" in _codes(docs)  # шаг 1: prompt_hash ≠ байты
+
+
+def test_brief_identity_tampered_field(bundle: list[Doc]) -> None:
+    doc = _brief_doc()
+    data = dict(doc.data, policy_version="scoring/v2")
+    docs = [*bundle, Doc(path=doc.path, kind=doc.kind, data=data)]
+    assert "BRIEF_IDENTITY" in _codes(docs)  # шаг 2: brief_id ≠ пересчёт
+
+
+def _assessment_with_provenance(brief: Doc) -> Doc:
+    data = {
+        "assessment_id": "ASMT-900",
+        "idea_ref": brief.data["idea_ref"],
+        "run_id": "RUN-900",
+        "input_hash": brief.data["input_hash"],
+        "policy_version": "scoring/v1",
+        "evidence_refs": [],
+        "fit_strategy": 4,
+        "fit_market": 4,
+        "fit_standards": 4,
+        "strategy_blocker": False,
+        "standards_blocker": False,
+        "confidence": "medium",
+        "evaluator": {
+            "kind": "agent",
+            "id": "claude",
+            "model": "m",
+            "prompt_version": brief.data["prompt_version"],
+        },
+        "evaluated_at": "2026-08-16T12:00:00Z",
+        "provenance": {
+            "brief_id": brief.data["brief_id"],
+            "prompt_pack_hash": brief.data["prompt_pack_hash"],
+            "strategy_hash": brief.data["strategy_hash"],
+            "standards_hash": brief.data["standards_hash"],
+        },
+    }
+    return Doc(path=Path("asmt-900.yaml"), kind="axis-assessment", data=data)
+
+
+def test_assess_brief_clean(bundle: list[Doc]) -> None:
+    brief = _brief_doc()
+    docs = [*bundle, brief, _assessment_with_provenance(brief)]
+    assert "ASSESS_BRIEF" not in _codes(docs)
+
+
+def test_assess_brief_dangling(bundle: list[Doc]) -> None:
+    brief = _brief_doc()
+    docs = [*bundle, _assessment_with_provenance(brief)]  # brief не включён
+    assert "ASSESS_BRIEF" in _codes(docs)
+
+
+def test_assess_brief_hash_mismatch(bundle: list[Doc]) -> None:
+    brief = _brief_doc()
+    asmt = _assessment_with_provenance(brief)
+    data = dict(asmt.data)
+    data["provenance"] = dict(data["provenance"], strategy_hash="sha256:" + "9" * 64)
+    docs = [*bundle, brief, Doc(path=asmt.path, kind=asmt.kind, data=data)]
+    assert "ASSESS_BRIEF" in _codes(docs)
+
+
+def test_assess_brief_input_hash_mismatch(bundle: list[Doc]) -> None:
+    brief = _brief_doc()
+    asmt = _assessment_with_provenance(brief)
+    data = dict(asmt.data, input_hash="sha256:" + "9" * 64)
+    docs = [*bundle, brief, Doc(path=asmt.path, kind=asmt.kind, data=data)]
+    assert "ASSESS_BRIEF" in _codes(docs)
+
+
+def test_assess_brief_skips_manual_v0(bundle: list[Doc]) -> None:
+    brief = _brief_doc()
+    asmt = _assessment_with_provenance(brief)
+    data = {k: v for k, v in asmt.data.items() if k != "provenance"}
+    docs = [*bundle, Doc(path=asmt.path, kind=asmt.kind, data=data)]
+    assert "ASSESS_BRIEF" not in _codes(docs)
