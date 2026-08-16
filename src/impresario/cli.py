@@ -138,7 +138,7 @@ def main(argv: list[str] | None = None) -> int:
         "--stop-after",
         default=None,
         help="pause boundary (start | research:N | concept:N | apply:N | "
-        "evaluate:N) — for crash/resume drills",
+        "evaluate:N | iteration:N) — for crash/resume drills",
     )
     fc_run.add_argument("--contracts", type=Path, default=None)
 

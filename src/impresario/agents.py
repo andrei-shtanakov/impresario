@@ -57,3 +57,26 @@ class ScriptedAgent:
         if not isinstance(entry, dict):
             raise AgentError(f"script entry {role}/{iteration} is not a document")
         return entry
+
+
+class SingleAnswerAgent:
+    """Serves exactly one pre-built artifact for one (role, iteration).
+
+    The step harness feeds the runner through this agent so the runner
+    stays the sole executor of loop semantics; any unexpected call is a
+    typed error (unreachable under the harness's stop_after boundaries).
+    """
+
+    def __init__(self, role: str, iteration: int, doc: dict[str, Any]) -> None:
+        self._role = role
+        self._iteration = iteration
+        self._doc = doc
+
+    def produce(self, role: str, iteration: int) -> dict[str, Any]:
+        """Return the single answer document or fail typed."""
+        if role != self._role or iteration != self._iteration:
+            raise AgentError(
+                f"single-answer agent holds {self._role}:{self._iteration}, "
+                f"got unexpected call {role}:{iteration}"
+            )
+        return self._doc
