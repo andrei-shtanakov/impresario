@@ -78,3 +78,14 @@ def test_detect_kind_assessment_answer() -> None:
     assert (
         detect_kind({"schema_version": "assessment-answer/v1"}) == "assessment-answer"
     )
+
+
+def test_answer_without_discriminator_is_unknown_kind() -> None:
+    from impresario.loader import UnknownContractError, detect_kind
+
+    answer_without = {"fit_strategy": 5, "rationale": {}}
+    with pytest.raises(UnknownContractError):
+        detect_kind(answer_without)
+
+    with pytest.raises(UnknownContractError):
+        detect_kind({"schema_version": "assessment-answer/v0"})

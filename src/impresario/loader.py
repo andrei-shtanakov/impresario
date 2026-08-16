@@ -69,7 +69,7 @@ def detect_kind(data: dict[str, Any]) -> str:
     """Detect the contract kind of a document from its identifying fields."""
     if "brief_id" in data:
         return "evaluation-brief"
-    if "schema_version" in data:
+    if data.get("schema_version") == "assessment-answer/v1":
         return "assessment-answer"
     if "loop_id" in data:
         return "loop-state"

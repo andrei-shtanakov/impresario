@@ -81,8 +81,7 @@ def test_detect_kind_assessment_answer() -> None:
     from impresario.loader import detect_kind
 
     assert (
-        detect_kind({"schema_version": "assessment-answer/v1"})
-        == "assessment-answer"
+        detect_kind({"schema_version": "assessment-answer/v1"}) == "assessment-answer"
     )
 ```
 
@@ -432,8 +431,7 @@ def test_sha256_bytes_format() -> None:
 
     digest = sha256_bytes(b"abc")
     assert digest == (
-        "sha256:ba7816bf8f01cfea414140de5dae2223"
-        "b00361a396177a9cb410ff61f20015ad"
+        "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
     )
 
 
@@ -967,9 +965,7 @@ def test_assess_brief_hash_mismatch(bundle: list[Doc]) -> None:
     brief = _brief_doc()
     asmt = _assessment_with_provenance(brief)
     data = dict(asmt.data)
-    data["provenance"] = dict(
-        data["provenance"], strategy_hash="sha256:" + "9" * 64
-    )
+    data["provenance"] = dict(data["provenance"], strategy_hash="sha256:" + "9" * 64)
     docs = [*bundle, brief, Doc(path=asmt.path, kind=asmt.kind, data=data)]
     assert "ASSESS_BRIEF" in _codes(docs)
 
@@ -1010,9 +1006,7 @@ def check_briefs(docs: list[Doc]) -> list[Finding]:
         data = doc.data
         prompt = data.get("prompt")
         actual_prompt_hash = (
-            sha256_bytes(prompt.encode("utf-8"))
-            if isinstance(prompt, str)
-            else None
+            sha256_bytes(prompt.encode("utf-8")) if isinstance(prompt, str) else None
         )
         if actual_prompt_hash != data.get("prompt_hash"):
             findings.append(
@@ -1040,8 +1034,7 @@ def check_briefs(docs: list[Doc]) -> list[Finding]:
                     code="BRIEF_IDENTITY",
                     path=str(doc.path),
                     message=(
-                        f"brief_id {data.get('brief_id')} != recomputed "
-                        f"{expected}"
+                        f"brief_id {data.get('brief_id')} != recomputed {expected}"
                     ),
                 )
             )
@@ -1056,11 +1049,7 @@ def check_assessment_provenance(docs: list[Doc]) -> list[Finding]:
     explicit here.
     """
     findings: list[Finding] = []
-    briefs = {
-        d.data.get("brief_id"): d
-        for d in docs
-        if d.kind == "evaluation-brief"
-    }
+    briefs = {d.data.get("brief_id"): d for d in docs if d.kind == "evaluation-brief"}
     for doc in docs:
         if doc.kind != "axis-assessment":
             continue
@@ -1069,9 +1058,7 @@ def check_assessment_provenance(docs: list[Doc]) -> list[Finding]:
             continue
 
         def err(message: str, *, _path: str = str(doc.path)) -> None:
-            findings.append(
-                Finding(code="ASSESS_BRIEF", path=_path, message=message)
-            )
+            findings.append(Finding(code="ASSESS_BRIEF", path=_path, message=message))
 
         brief = briefs.get(provenance.get("brief_id"))
         if brief is None:
@@ -1176,7 +1163,9 @@ def _ingest(ws_path: Path, pairs: list[tuple[Path, Path]], **kw):
     return ingest_pairs(ws_path, CONTRACTS_DIR, pairs=pairs, **defaults)
 
 
-def test_ingest_happy_materializes_valid_assessment(assess_ws: Path, tmp_path: Path) -> None:
+def test_ingest_happy_materializes_valid_assessment(
+    assess_ws: Path, tmp_path: Path
+) -> None:
     from impresario.cli import validate_paths
     from impresario.harness import render_briefs
 
@@ -1281,9 +1270,7 @@ def test_ingest_idempotent_retry_and_conflict(assess_ws: Path, tmp_path: Path) -
 
     divergent = dict(_good_answer(), confidence="low")
     answer2 = tmp_path / "b.yaml"
-    answer2.write_text(
-        yaml.safe_dump(divergent, allow_unicode=True), encoding="utf-8"
-    )
+    answer2.write_text(yaml.safe_dump(divergent, allow_unicode=True), encoding="utf-8")
     with pytest.raises(HarnessError, match="ASSESS_CONFLICT"):
         _ingest(assess_ws, [(brief_path, answer2)])
     with pytest.raises(HarnessError, match="ASSESS_CONFLICT"):
@@ -1426,11 +1413,7 @@ def _candidate_assessment(
 
 
 def _strip_identity(data: dict[str, Any]) -> dict[str, Any]:
-    return {
-        k: v
-        for k, v in data.items()
-        if k not in ("assessment_id", "evaluated_at")
-    }
+    return {k: v for k, v in data.items() if k not in ("assessment_id", "evaluated_at")}
 
 
 def ingest_pairs(
@@ -1480,10 +1463,11 @@ def _ingest_locked(
     from .loader import Doc
 
     validators = load_validators(contracts_dir)
-    existing_docs = [
-        load_doc(p)
-        for p in sorted(ws.assessments_dir(workspace).glob("*.yaml"))
-    ] if ws.assessments_dir(workspace).is_dir() else []
+    existing_docs = (
+        [load_doc(p) for p in sorted(ws.assessments_dir(workspace).glob("*.yaml"))]
+        if ws.assessments_dir(workspace).is_dir()
+        else []
+    )
     existing_by_key = {
         (d.data.get("run_id"), (d.data.get("provenance") or {}).get("brief_id")): d
         for d in existing_docs
@@ -1508,18 +1492,14 @@ def _ingest_locked(
         brief = brief_doc.data
         if sha256_bytes(brief["prompt"].encode("utf-8")) != brief["prompt_hash"]:
             raise HarnessError(
-                f"{brief_path}: BRIEF_IDENTITY: prompt bytes do not match "
-                "prompt_hash"
+                f"{brief_path}: BRIEF_IDENTITY: prompt bytes do not match prompt_hash"
             )
         if brief_identity(brief) != brief["brief_id"]:
             raise HarnessError(
-                f"{brief_path}: BRIEF_IDENTITY: brief_id does not match the "
-                "recompute"
+                f"{brief_path}: BRIEF_IDENTITY: brief_id does not match the recompute"
             )
         if brief["brief_id"] in seen_brief_ids:
-            raise HarnessError(
-                f"duplicate brief {brief['brief_id']} in one invocation"
-            )
+            raise HarnessError(f"duplicate brief {brief['brief_id']} in one invocation")
         seen_brief_ids.add(brief["brief_id"])
 
         idea_id = brief["idea_ref"].removeprefix("idea://")
@@ -1528,8 +1508,7 @@ def _ingest_locked(
         idea_docs = [
             d
             for d in (
-                load_doc(p)
-                for p in sorted(ws.ideas_dir(workspace).glob("*.yaml"))
+                load_doc(p) for p in sorted(ws.ideas_dir(workspace).glob("*.yaml"))
             )
             if d.kind == "idea" and d.data.get("id") == idea_id
         ]
@@ -1578,9 +1557,7 @@ def _ingest_locked(
 
     # -------- фаза 2: материализация набора --------
     existing_ids = {
-        d.data["assessment_id"]
-        for d in existing_docs
-        if d.kind == "axis-assessment"
+        d.data["assessment_id"] for d in existing_docs if d.kind == "axis-assessment"
     }
     validator = validators["axis-assessment"]
     written: list[dict[str, str]] = []
@@ -1679,7 +1656,9 @@ def test_cli_assess_render_and_ingest(assess_ws: Path, tmp_path: Path, capsys) -
     assert code == 0 and out2["ok"] and len(out2["written"]) == 1
 
 
-def test_cli_assess_ingest_error_is_exit_2(assess_ws: Path, tmp_path: Path, capsys) -> None:
+def test_cli_assess_ingest_error_is_exit_2(
+    assess_ws: Path, tmp_path: Path, capsys
+) -> None:
     from impresario.cli import main
 
     code = main(
@@ -1745,40 +1724,38 @@ exit 2; `contracts` резолвится как у других команд ч�
 resume/gate — свериться и переиспользовать):
 
 ```python
-    if args.command == "assess":
-        from .harness import (
-            HarnessError,
-            find_prompts_dir,
-            ingest_pairs,
-            render_briefs,
-        )
+if args.command == "assess":
+    from .harness import (
+        HarnessError,
+        find_prompts_dir,
+        ingest_pairs,
+        render_briefs,
+    )
 
-        try:
-            contracts = args.contracts or find_contracts_dir(args.workspace)
-            if args.assess_command == "render":
-                prompts = args.prompts or find_prompts_dir(args.workspace)
-                report = render_briefs(
-                    args.workspace, contracts, prompts, idea_id=args.idea
-                )
-            else:
-                if len(args.brief) != len(args.answer):
-                    raise HarnessError(
-                        "--brief and --answer must come in pairs"
-                    )
-                report = ingest_pairs(
-                    args.workspace,
-                    contracts,
-                    run_id=args.run_id,
-                    actor=args.actor,
-                    model=args.model,
-                    pairs=list(zip(args.brief, args.answer, strict=True)),
-                    now_iso=_now_iso(),
-                )
-        except (HarnessError, FileNotFoundError, OSError) as exc:
-            print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
-            return EXIT_USAGE
-        print(json.dumps(report, ensure_ascii=False))
-        return 0
+    try:
+        contracts = args.contracts or find_contracts_dir(args.workspace)
+        if args.assess_command == "render":
+            prompts = args.prompts or find_prompts_dir(args.workspace)
+            report = render_briefs(
+                args.workspace, contracts, prompts, idea_id=args.idea
+            )
+        else:
+            if len(args.brief) != len(args.answer):
+                raise HarnessError("--brief and --answer must come in pairs")
+            report = ingest_pairs(
+                args.workspace,
+                contracts,
+                run_id=args.run_id,
+                actor=args.actor,
+                model=args.model,
+                pairs=list(zip(args.brief, args.answer, strict=True)),
+                now_iso=_now_iso(),
+            )
+    except (HarnessError, FileNotFoundError, OSError) as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
+        return EXIT_USAGE
+    print(json.dumps(report, ensure_ascii=False))
+    return 0
 ```
 
 (`_now_iso` — использовать фактическое имя источника времени в cli.py;
