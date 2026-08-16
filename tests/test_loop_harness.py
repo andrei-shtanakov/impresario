@@ -305,8 +305,14 @@ def test_step_stale_brief_and_mispairing(loop_ws: Path, tmp_path: Path) -> None:
         _step(loop_ws, Path(r1["path"]), ans)
 
 
-def test_step_prevalidates_assembled_artifact(loop_ws: Path, tmp_path: Path) -> None:  # noqa: F811 - pytest fixture reuse
-    """Невалидная сборка — typed-ошибка step'а, loop.state не тронут."""
+def test_step_answer_schema_rejects_bad_content(loop_ws: Path, tmp_path: Path) -> None:  # noqa: F811 - pytest fixture reuse
+    """Невалидный контент answer — step 4 (answer schema), state не тронут.
+
+    `research-answer/v1` shares the same `gap.answered_by` pattern as
+    `research-pack/v1`, so this fires at step 4 (raw answer schema check)
+    rather than step 5 (assembled-artifact pre-validation) — step 5 has
+    its own dedicated test below.
+    """
     from impresario.harness import HarnessError
     from impresario.loop_harness import render_stage_brief
 
@@ -321,10 +327,56 @@ def test_step_prevalidates_assembled_artifact(loop_ws: Path, tmp_path: Path) -> 
         }
     ]
     ans = _write_yaml(tmp_path / "ra.yaml", bad)
-    with pytest.raises(HarnessError):
+    with pytest.raises(HarnessError, match="invalid answer"):
         _step(loop_ws, Path(r1["path"]), ans)
     state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
     assert state["stop"] is None  # никакого verdict=failed
+
+
+def test_step_prevalidates_assembled_artifact(
+    loop_ws: Path,  # noqa: F811 - pytest fixture reuse
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Step 5 (assembled-artifact pre-validation) actually fires.
+
+    research-answer/v1 and concept-answer/v1 mirror every content-level
+    sub-schema of research-pack/v1 and concept-draft/v1, so any
+    content-level defect is already caught at step 4 (raw answer schema)
+    — step 5 never runs on it. The only defect class step 5 alone can
+    catch is a bug in assembly itself: a bookkeeping field the answer
+    schema never sees. Simulate that by monkeypatching
+    `loop_harness._assemble_artifact` to corrupt `idea_ref` on the doc
+    it returns (answer + brief stay untouched and schema-valid on their
+    own), then assert the typed step-5 error fires, the runner is never
+    invoked, and nothing is persisted.
+    """
+    import impresario.loop_harness as loop_harness_mod
+    from impresario.harness import HarnessError
+    from impresario.loop_harness import render_stage_brief
+
+    r1 = render_stage_brief(loop_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    ans = _write_yaml(tmp_path / "ra.yaml", RA_CONTENT_IT0)
+
+    original_assemble = loop_harness_mod._assemble_artifact
+
+    def _corrupting_assemble(*args: object, **kwargs: object) -> dict:
+        doc = original_assemble(*args, **kwargs)  # type: ignore[arg-type]
+        doc["idea_ref"] = "BOGUS"  # invisible to research-answer/v1
+        return doc
+
+    monkeypatch.setattr(loop_harness_mod, "_assemble_artifact", _corrupting_assemble)
+
+    state_path = loop_ws / "loop.state"
+    state_before = state_path.read_bytes()
+    artifacts_before = sorted(loop_ws.glob("rp-*.yaml"))
+    assert artifacts_before == []
+
+    with pytest.raises(HarnessError, match="refusing to run"):
+        _step(loop_ws, Path(r1["path"]), ans)
+
+    assert state_path.read_bytes() == state_before  # runner never invoked
+    assert sorted(loop_ws.glob("rp-*.yaml")) == []  # nothing persisted
 
 
 def test_step_oracle_equivalence_happy(loop_ws: Path, tmp_path: Path) -> None:  # noqa: F811 - pytest fixture reuse
