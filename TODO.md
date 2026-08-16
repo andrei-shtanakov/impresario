@@ -51,8 +51,18 @@
   Спека: docs/superpowers/specs/2026-08-16-prioritizer-prompt-harness-design.md.
   Живой RUN-003 (переоценка pilot прошедшим харнессом) — отдельный
   человеческий акт после мержа
-- [ ] M2-хвост, researcher/creator-харнесс: промпт-харнесс агентов цикла
-  (тот же переход от manual к воспроизводимому prompt_version)
+- [x] M2-хвост, researcher/creator-харнесс: промпт-харнесс агентов цикла
+  (тот же переход от manual к воспроизводимому `prompt_version`, что и у
+  оценщика) — `impresario forconcept brief|step`, immutable `StageBrief`
+  (`stage-brief/v1`, идентичность — хеш девяти полей включая
+  `prompt_hash`), `research-answer/v1` / `concept-answer/v1`, кросс-чеки
+  `BRIEF_IDENTITY` / `ARTIFACT_BRIEF`. `step`: идемпотентность до
+  freshness, freshness всех входов брифа, пре-валидация собранного
+  артефакта, раннер — единственный исполнитель (граница `research:N` |
+  `iteration:N`). Спека:
+  docs/superpowers/specs/2026-08-16-loop-agent-harness-design.md. Живой
+  прогон цикла живыми researcher/creator — отдельный человеческий акт
+  после мержа
 
 ## M4 — QG-5 и handoff
 

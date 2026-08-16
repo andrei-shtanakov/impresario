@@ -475,3 +475,56 @@ def test_step_oracle_equivalence_happy(loop_ws: Path, tmp_path: Path) -> None:  
         ]
 
     assert _artifact_written(step_trace) == _artifact_written(ref_trace)
+
+
+def test_cli_forconcept_brief_and_step(loop_ws: Path, tmp_path: Path, capsys) -> None:  # noqa: F811 - pytest fixture reuse
+    from impresario.cli import main
+
+    code = main(["forconcept", "brief", str(loop_ws)])
+    out = json.loads(capsys.readouterr().out)
+    assert code == 0 and out["role"] == "researcher"
+
+    ans = _write_yaml(tmp_path / "ra.yaml", RA_CONTENT_IT0)
+    code = main(
+        [
+            "forconcept",
+            "step",
+            str(loop_ws),
+            "--brief",
+            out["path"],
+            "--answer",
+            str(ans),
+            "--actor",
+            "claude",
+            "--model",
+            "claude-fable-5",
+        ]
+    )
+    out2 = json.loads(capsys.readouterr().out)
+    assert code == 0 and out2["ok"] and out2["runner"]["verdict"] == "paused"
+
+
+def test_cli_forconcept_step_typed_error_is_exit_2(
+    loop_ws: Path,  # noqa: F811 - pytest fixture reuse
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from impresario.cli import main
+
+    code = main(
+        [
+            "forconcept",
+            "step",
+            str(loop_ws),
+            "--brief",
+            str(tmp_path / "нет.yaml"),
+            "--answer",
+            str(tmp_path / "нет2.yaml"),
+            "--actor",
+            "a",
+            "--model",
+            "m",
+        ]
+    )
+    out = json.loads(capsys.readouterr().out)
+    assert code == 2 and out["ok"] is False

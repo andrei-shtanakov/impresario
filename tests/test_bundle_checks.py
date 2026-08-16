@@ -552,3 +552,33 @@ def test_artifact_brief_loop_id_mismatch(bundle: list[Doc]) -> None:
     rp = _rp_with_provenance(brief)
     foreign_loop_state = _loop_state(loop_id="LOOP-999")
     assert "ARTIFACT_BRIEF" in _codes([*bundle, brief, rp, foreign_loop_state])
+
+
+def test_artifact_brief_duplicate_brief_id_order_independent(
+    bundle: list[Doc],
+) -> None:
+    """Duplicate brief_id detection is order-independent (exact-one constraint).
+
+    Two stage-briefs with the same brief_id but different prompt_pack_hash
+    values in different orderings should both report ARTIFACT_BRIEF for the
+    matching artifact, not silently pick one (last-wins bug) — mirrors
+    test_assess_brief_duplicate_brief_id_order_independent above.
+    """
+    base = _stage_brief_doc()
+    brief1 = base
+    brief2_data = dict(base.data, prompt_pack_hash="sha256:" + "e" * 64)
+    brief2 = Doc(path=Path("sbr2.yaml"), kind=base.kind, data=brief2_data)
+
+    assert brief1.data["brief_id"] == brief2.data["brief_id"]
+
+    rp = _rp_with_provenance(brief1)
+
+    codes1 = _codes([*bundle, brief1, brief2, rp])
+    assert "ARTIFACT_BRIEF" in codes1, (
+        "Expected ARTIFACT_BRIEF for duplicate brief_ids (order 1)"
+    )
+
+    codes2 = _codes([*bundle, brief2, brief1, rp])
+    assert "ARTIFACT_BRIEF" in codes2, (
+        "Expected ARTIFACT_BRIEF for duplicate brief_ids (order 2)"
+    )

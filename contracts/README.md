@@ -18,6 +18,9 @@
 | [loop-resume-decision/v1](./loop-resume-decision/v1/schema.json) | LoopResumeDecision (immutable авторизация resume одного ожидания needs_human; docs/semantics.md «Состояние цикла») |
 | [run-record/v1](./run-record/v1/schema.json) | RunRecord (immutable запись материализации бэклога) |
 | [loop-state/v1](./loop-state/v1/schema.json) | LoopState (текущий projection состояния цикла researcher ↔ creator; JSON-файл `loop.state`, сигнал `needs_human` — docs/semantics.md) |
+| [stage-brief/v1](./stage-brief/v1/schema.json) | StageBrief (immutable evidence — рендер следующей ожидаемой стадии цикла researcher ↔ creator для внешнего LLM; docs/semantics.md «Харнесс агентов цикла») |
+| [research-answer/v1](./research-answer/v1/schema.json) | ResearchAnswer (сырой ответ исполнителя на StageBrief роли researcher; без identity, без bookkeeping) |
+| [concept-answer/v1](./concept-answer/v1/schema.json) | ConceptAnswer (сырой ответ исполнителя на StageBrief роли creator; без identity, без bookkeeping) |
 
 ## Канонические идентификаторы схем
 
@@ -42,6 +45,12 @@
 | LoopResumeDecision | `LRD-[0-9]{3,}` | `LRD-001` |
 | Evaluation run | `RUN-[0-9]{3,}` | `RUN-001` |
 | Loop | `LOOP-[0-9]{3,}` | `LOOP-101` |
+| StageBrief | `SBR-[0-9a-f]{12}` (content-addressed, не sequential) | `SBR-1a2b3c4d5e6f` |
+
+`brief_id` StageBrief — не sequential ID, а хеш кортежа из девяти
+identity-полей (включая `prompt_hash`): та же схема идентичности, что у
+`evaluation-brief/v1` (`BRF-…`) промпт-харнесса оценщика — байтовое
+расхождение под тем же id — typed-отказ (подделка), не тихая перезапись.
 
 Внутренние ссылки — URI со схемой по типу объекта; разрешимых ссылочных
 схем девять: `idea://IDEA-001`, `assessment://ASMT-001`,

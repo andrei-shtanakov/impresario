@@ -162,6 +162,36 @@ Immutable запись решения. Поля: `gate_id` (`qg4_backlog` | `qg5
 проверяет их по актуальным (принадлежащим той же идее и proposal)
 артефактам из `refs`.
 
+## Харнесс агентов цикла
+
+`impresario forconcept brief|step` — детерминированная сторона цикла
+researcher ↔ creator для внешнего LLM, без вызова LLM самим impresario
+(спека:
+[2026-08-16-loop-agent-harness-design.md](./superpowers/specs/2026-08-16-loop-agent-harness-design.md)).
+`brief` выводит следующий ожидаемый вызов из тех же durable-артефактов,
+что читает раннер (`derive_next_call`), и рендерит immutable
+`StageBrief`: identity — хеш девяти identity-полей, включая `prompt_hash`
+(без него подмена промпта при неизменных соседних полях прошла бы
+пересчёт); byte-level no-op на неизменных входах; расхождение байтов под
+тем же `brief_id` — typed-отказ (подделка), тот же контракт identity, что
+у `EvaluationBrief` промпт-харнесса оценщика.
+
+`step` валидирует ответ (`research-answer/v1` | `concept-answer/v1`) и
+продвигает раннер ровно на одну стадию — нормативный порядок:
+идемпотентность **до** freshness (brief, уже потреблённый ранее, — no-op
+и тогда, когда workspace с тех пор продвинулся другим путём: иначе он был
+бы ошибочно отвергнут как устаревший), затем freshness всех входов брифа
+(`loop_id`, `iteration`, `role`, хэши idea/proposal/history против
+текущего состояния workspace — расхождение любого поля — `STALE_BRIEF`),
+затем schema ответа, затем пре-валидация полностью собранного артефакта
+(defense-in-depth сверх schema ответа: ловит дефекты сборки, которые
+answer-схема не видит). Раннер (`run_loop`) — единственный исполнитель
+loop-семантики: `step` его не обходит, а вызывает с готовым артефактом
+через `SingleAnswerAgent`, останавливаясь на границе `research:N`
+(researcher) или `iteration:N` (creator) — после того, как терминальные
+эффекты стадии (evaluate, применение дельты) уже совершились для
+завершающей итерацию стадии creator.
+
 ## Состояние цикла: loop-state (сигнал `needs_human`)
 
 Файл `loop.state` (JSON, корень loop-workspace) — законтрактованный

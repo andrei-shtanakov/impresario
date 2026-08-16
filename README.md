@@ -101,6 +101,41 @@ assumptions/gaps и запросов → `ready_for_business`; есть и ос�
 [pilot/forconcept/](./pilot/forconcept/pp-101/), скрипт —
 `pp-101.script`.
 
+## Живые агенты цикла (researcher/v1, creator/v1)
+
+M2-хвост, researcher/creator-половина: тот же переход от ручного
+промптинга к воспроизводимому `prompt_version`, что и у оценщика, но для
+`forconcept run`. impresario сам LLM не вызывает — `brief` детерминированно
+рендерит immutable `StageBrief` следующей ожидаемой стадии (researcher или
+creator), внешний исполнитель отвечает на его `prompt`, `step` валидирует
+ответ и прогоняет раннер ровно на одну стадию. Спека:
+[docs/superpowers/specs/2026-08-16-loop-agent-harness-design.md](./docs/superpowers/specs/2026-08-16-loop-agent-harness-design.md).
+
+```bash
+# детерминированный render: brief следующей стадии (researcher | creator)
+uv run impresario forconcept brief <ws> [--prompts DIR] [--contracts DIR]
+
+# < внешний LLM-вызов по brief.prompt, ответ — research-answer/v1 |
+#   concept-answer/v1 >
+
+# ингест ответа + один шаг раннера (пауза на границе research:N | iteration:N)
+uv run impresario forconcept step <ws> --brief <brief.yaml> \
+    --answer <answer.yaml> --actor <id> --model <model> \
+    [--prompts DIR] [--contracts DIR]
+```
+
+`brief` выводит следующий вызов из тех же durable-артефактов, что и
+раннер (researcher без `RP` итерации → creator без `CD` → применение
+дельты); идентичность брифа — хеш девяти identity-полей (включая
+`prompt_hash`, иначе подмена промпта прошла бы пересчёт). `step` —
+идемпотентность **до** freshness (потреблённый brief после того, как
+workspace продвинулся иначе, — no-op, не `STALE_BRIEF`), затем свежесть
+всех входов брифа (`loop_id`, `iteration`, `role`, хэши idea/proposal/
+history), затем schema ответа, затем пре-валидация полностью собранного
+артефакта — и только тогда раннер (единственный исполнитель loop-семантики)
+делает один шаг, останавливаясь на границе `research:N` (researcher) или
+`iteration:N` (creator).
+
 ## Промпт-харнесс оценщика (prioritizer/v1)
 
 Уходит от `prompt_version: prioritizer/manual-v0` (friction №5): render
@@ -170,6 +205,7 @@ single-writer lock.
 | `LRD_DUP` | Больше одного активного решения resume на одно ожидание |
 | `BRIEF_IDENTITY` | `prompt_hash` или `brief_id` брифа не совпадают с пересчётом |
 | `ASSESS_BRIEF` | Цепь assessment → brief нарушена: висячий `provenance.brief_id` или расходящиеся хеши/версии |
+| `ARTIFACT_BRIEF` | Цепь артефакт → stage-brief нарушена |
 
 Отчёт — JSON в stdout (`ok`, `checked`, `errors[]`) при любом исходе.
 Сравнение времён решений — парсинг RFC 3339, не лексикографика.
@@ -185,7 +221,7 @@ single-writer lock.
 ## Разработка
 
 ```bash
-uv run pytest          # 210 тестов: fixtures + кросс-чеки + CLI
+uv run pytest          # 251 тест: fixtures + кросс-чеки + CLI
 uv run ruff format . && uv run ruff check .
 uv run pyrefly check
 ```
