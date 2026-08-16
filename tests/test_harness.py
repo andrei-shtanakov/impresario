@@ -152,3 +152,227 @@ def test_render_refuses_divergent_bytes_under_same_id(assess_ws: Path) -> None:
     path.write_text(tampered, encoding="utf-8")
     with pytest.raises(HarnessError, match="diverg"):
         render_briefs(assess_ws, CONTRACTS_DIR, PROMPTS_DIR)
+
+
+NOW = "2026-08-16T12:00:00Z"
+
+
+def _good_answer() -> dict:
+    return {
+        "schema_version": "assessment-answer/v1",
+        "fit_strategy": 5,
+        "fit_market": "unknown",
+        "fit_standards": 4,
+        "strategy_blocker": False,
+        "standards_blocker": False,
+        "rationale": {
+            "fit_strategy": "Прямое попадание в G-1.",
+            "fit_market": "Замеров нет — честный unknown.",
+            "fit_standards": "Соответствует STD-1.",
+        },
+        "evidence_refs": ["strategy://ecosystem/2026/G-1"],
+        "confidence": "medium",
+    }
+
+
+def _ingest(ws_path: Path, pairs: list[tuple[Path, Path]], **kw):
+    from impresario.harness import ingest_pairs
+
+    defaults = dict(
+        run_id="RUN-100", actor="claude", model="claude-fable-5", now_iso=NOW
+    )
+    defaults.update(kw)
+    return ingest_pairs(ws_path, CONTRACTS_DIR, pairs=pairs, **defaults)
+
+
+def test_ingest_happy_materializes_valid_assessment(
+    assess_ws: Path, tmp_path: Path
+) -> None:
+    from impresario.cli import validate_paths
+    from impresario.harness import render_briefs
+
+    report = render_briefs(assess_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    brief_path = Path(report["briefs"][0]["path"])
+    answer_path = tmp_path / "answer.yaml"
+    answer_path.write_text(
+        yaml.safe_dump(_good_answer(), allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    result = _ingest(assess_ws, [(brief_path, answer_path)])
+    assert result["ok"] and len(result["written"]) == 1
+
+    asmt = load_doc(Path(result["written"][0]["path"]))
+    assert asmt.kind == "axis-assessment"
+    assert asmt.data["assessment_id"] == "ASMT-001"
+    assert asmt.data["run_id"] == "RUN-100"
+    assert asmt.data["input_hash"] == load_doc(brief_path).data["input_hash"]
+    assert asmt.data["evaluator"] == {
+        "kind": "agent",
+        "id": "claude",
+        "model": "claude-fable-5",
+        "prompt_version": "prioritizer/v1",
+    }
+    assert asmt.data["provenance"]["brief_id"] == report["briefs"][0]["brief_id"]
+    # собственный выход проходит контракты и бандл-чеки workspace
+    bundle = validate_paths([assess_ws], CONTRACTS_DIR, bundle=True)
+    assert bundle.ok, [f"{f.code}: {f.message}" for f in bundle.errors]
+
+
+def test_ingest_stale_input(assess_ws: Path, tmp_path: Path) -> None:
+    from impresario.harness import HarnessError, render_briefs
+
+    report = render_briefs(assess_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    brief_path = Path(report["briefs"][0]["path"])
+    idea_path = assess_ws / "ideas" / "idea-001.yaml"
+    idea_path.write_text(
+        yaml.safe_dump(
+            dict(IDEA_DOC, hypothesis="changed"),
+            allow_unicode=True,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    answer_path = tmp_path / "a.yaml"
+    answer_path.write_text(
+        yaml.safe_dump(_good_answer(), allow_unicode=True), encoding="utf-8"
+    )
+    with pytest.raises(HarnessError, match="STALE_INPUT"):
+        _ingest(assess_ws, [(brief_path, answer_path)])
+    assert not list((assess_ws / "assessments").glob("*.yaml"))
+
+
+def test_ingest_tampered_brief(assess_ws: Path, tmp_path: Path) -> None:
+    from impresario.harness import HarnessError, render_briefs
+
+    report = render_briefs(assess_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    brief_path = Path(report["briefs"][0]["path"])
+    doc = yaml.safe_load(brief_path.read_text(encoding="utf-8"))
+    doc["prompt"] += "инъекция\n"
+    tampered = tmp_path / "brief.yaml"
+    tampered.write_text(yaml.safe_dump(doc, allow_unicode=True), encoding="utf-8")
+    answer_path = tmp_path / "a.yaml"
+    answer_path.write_text(
+        yaml.safe_dump(_good_answer(), allow_unicode=True), encoding="utf-8"
+    )
+    with pytest.raises(HarnessError, match="BRIEF_IDENTITY"):
+        _ingest(assess_ws, [(tampered, answer_path)])
+
+
+def test_ingest_invalid_answer_writes_nothing(assess_ws: Path, tmp_path: Path) -> None:
+    from impresario.harness import HarnessError, render_briefs
+
+    report = render_briefs(assess_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    brief_path = Path(report["briefs"][0]["path"])
+    bad = dict(_good_answer(), input_hash="sha256:" + "a" * 64)  # bookkeeping
+    answer_path = tmp_path / "a.yaml"
+    answer_path.write_text(yaml.safe_dump(bad, allow_unicode=True), encoding="utf-8")
+    with pytest.raises(HarnessError):
+        _ingest(assess_ws, [(brief_path, answer_path)])
+    assert not list((assess_ws / "assessments").glob("*.yaml"))
+
+
+def test_ingest_idempotent_retry_and_conflict(assess_ws: Path, tmp_path: Path) -> None:
+    from impresario.harness import HarnessError, render_briefs
+
+    report = render_briefs(assess_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    brief_path = Path(report["briefs"][0]["path"])
+    answer_path = tmp_path / "a.yaml"
+    answer_path.write_text(
+        yaml.safe_dump(_good_answer(), allow_unicode=True), encoding="utf-8"
+    )
+    first = _ingest(assess_ws, [(brief_path, answer_path)])
+    written_path = Path(first["written"][0]["path"])
+    bytes_before = written_path.read_bytes()
+
+    retry = _ingest(
+        assess_ws, [(brief_path, answer_path)], now_iso="2026-08-16T13:00:00Z"
+    )
+    assert retry["written"] == [] and len(retry["noop"]) == 1
+    assert written_path.read_bytes() == bytes_before  # первый evaluated_at жив
+
+    divergent = dict(_good_answer(), confidence="low")
+    answer2 = tmp_path / "b.yaml"
+    answer2.write_text(yaml.safe_dump(divergent, allow_unicode=True), encoding="utf-8")
+    with pytest.raises(HarnessError, match="ASSESS_CONFLICT"):
+        _ingest(assess_ws, [(brief_path, answer2)])
+    with pytest.raises(HarnessError, match="ASSESS_CONFLICT"):
+        _ingest(assess_ws, [(brief_path, answer_path)], actor="другой")
+
+
+def test_ingest_phase1_error_writes_nothing_for_any_pair(
+    assess_ws: Path, tmp_path: Path
+) -> None:
+    """Вторая пара бита → не записана и первая (двухфазность)."""
+    from impresario.harness import HarnessError, render_briefs
+
+    (assess_ws / "ideas" / "idea-002.yaml").write_text(
+        yaml.safe_dump(
+            dict(IDEA_DOC, id="IDEA-002", title="Second"),
+            allow_unicode=True,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    report = render_briefs(assess_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    assert len(report["briefs"]) == 2
+    good_answer = tmp_path / "good.yaml"
+    good_answer.write_text(
+        yaml.safe_dump(_good_answer(), allow_unicode=True), encoding="utf-8"
+    )
+    bad_answer = tmp_path / "bad.yaml"
+    bad_answer.write_text("schema_version: assessment-answer/v1\n", encoding="utf-8")
+    pairs = [
+        (Path(report["briefs"][0]["path"]), good_answer),
+        (Path(report["briefs"][1]["path"]), bad_answer),
+    ]
+    with pytest.raises(HarnessError):
+        _ingest(assess_ws, pairs)
+    assert not list((assess_ws / "assessments").glob("*.yaml"))
+
+
+def test_ingest_recovery_after_partial_write(
+    assess_ws: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Сбой между записями пар: повтор дозаписывает без дублей."""
+    import impresario.harness as harness_mod
+    from impresario.harness import render_briefs
+
+    (assess_ws / "ideas" / "idea-002.yaml").write_text(
+        yaml.safe_dump(
+            dict(IDEA_DOC, id="IDEA-002", title="Second"),
+            allow_unicode=True,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    report = render_briefs(assess_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    answers = []
+    for i in (0, 1):
+        p = tmp_path / f"a{i}.yaml"
+        p.write_text(
+            yaml.safe_dump(_good_answer(), allow_unicode=True), encoding="utf-8"
+        )
+        answers.append(p)
+    pairs = [
+        (Path(report["briefs"][0]["path"]), answers[0]),
+        (Path(report["briefs"][1]["path"]), answers[1]),
+    ]
+
+    original = harness_mod._write_assessment
+    calls = {"n": 0}
+
+    def flaky(path, content):  # noqa: ANN001, ANN202
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise OSError("simulated crash mid commit phase")
+        original(path, content)
+
+    monkeypatch.setattr(harness_mod, "_write_assessment", flaky)
+    with pytest.raises(OSError):
+        _ingest(assess_ws, pairs)
+    assert len(list((assess_ws / "assessments").glob("*.yaml"))) == 1
+
+    monkeypatch.setattr(harness_mod, "_write_assessment", original)
+    result = _ingest(assess_ws, pairs)
+    assert len(result["noop"]) == 1 and len(result["written"]) == 1
+    assert len(list((assess_ws / "assessments").glob("*.yaml"))) == 2
