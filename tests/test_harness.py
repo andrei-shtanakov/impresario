@@ -376,3 +376,83 @@ def test_ingest_recovery_after_partial_write(
     result = _ingest(assess_ws, pairs)
     assert len(result["noop"]) == 1 and len(result["written"]) == 1
     assert len(list((assess_ws / "assessments").glob("*.yaml"))) == 2
+
+
+def test_cli_assess_render_and_ingest(assess_ws: Path, tmp_path: Path, capsys) -> None:
+    import json as jsonlib
+
+    from impresario.cli import main
+
+    code = main(["assess", "render", str(assess_ws)])
+    out = jsonlib.loads(capsys.readouterr().out)
+    assert code == 0 and out["ok"] and len(out["briefs"]) == 1
+
+    answer_path = tmp_path / "a.yaml"
+    answer_path.write_text(
+        yaml.safe_dump(_good_answer(), allow_unicode=True), encoding="utf-8"
+    )
+    code = main(
+        [
+            "assess",
+            "ingest",
+            str(assess_ws),
+            "--run-id",
+            "RUN-100",
+            "--actor",
+            "claude",
+            "--model",
+            "claude-fable-5",
+            "--brief",
+            out["briefs"][0]["path"],
+            "--answer",
+            str(answer_path),
+        ]
+    )
+    out2 = jsonlib.loads(capsys.readouterr().out)
+    assert code == 0 and out2["ok"] and len(out2["written"]) == 1
+
+
+def test_cli_assess_ingest_error_is_exit_2(
+    assess_ws: Path, tmp_path: Path, capsys
+) -> None:
+    from impresario.cli import main
+
+    code = main(
+        [
+            "assess",
+            "ingest",
+            str(assess_ws),
+            "--run-id",
+            "RUN-100",
+            "--actor",
+            "a",
+            "--model",
+            "m",
+            "--brief",
+            str(tmp_path / "нет.yaml"),
+            "--answer",
+            str(tmp_path / "нет2.yaml"),
+        ]
+    )
+    assert code == 2
+
+
+def test_cli_assess_render_idea_filter(assess_ws: Path, capsys) -> None:
+    """Carried-over review item: --idea filtering had zero CLI coverage."""
+    import json as jsonlib
+
+    from impresario.cli import main
+
+    (assess_ws / "ideas" / "idea-002.yaml").write_text(
+        yaml.safe_dump(
+            dict(IDEA_DOC, id="IDEA-002", title="Second"),
+            allow_unicode=True,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    code = main(["assess", "render", str(assess_ws), "--idea", "IDEA-001"])
+    out = jsonlib.loads(capsys.readouterr().out)
+    assert code == 0 and out["ok"]
+    assert len(out["briefs"]) == 1
+    assert out["briefs"][0]["idea_ref"] == "idea://IDEA-001"

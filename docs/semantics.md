@@ -63,6 +63,23 @@ RankedBacklog. Новый LLM-вызов — новый evaluation run со св
 provenance и объяснимой дельтой; побайтовая воспроизводимость баллов не
 обещается.
 
+## Промпт-харнесс оценщика
+
+`impresario assess render|ingest` — детерминированная сторона оценки,
+без вызова LLM (спека:
+[2026-08-16-prioritizer-prompt-harness-design.md](./superpowers/specs/2026-08-16-prioritizer-prompt-harness-design.md)).
+`render` собирает EvaluationBrief — **immutable evidence**: identity —
+хеш кортежа идентичности, в который входит и `prompt_hash` (без него
+подмена промпта при неизменных соседних полях прошла бы пересчёт);
+изменившийся вход даёт новый brief, старый не трогается, байтовое
+расхождение под тем же id — typed-отказ (подделка). `ingest` —
+двухфазная материализация AxisAssessment из пары brief+answer:
+фаза 1 проверяет все пары (schema, пересчёт identity, `STALE_INPUT`
+против текущей карточки) и не пишет ничего при любой ошибке; фаза 2
+материализует весь набор. Идемпотентность — по паре `(run_id,
+brief_id)`: повтор с тем же ответом — no-op, тот же ключ с другим
+ответом/актором/моделью — `ASSESS_CONFLICT`.
+
 ## RankedBacklog
 
 Версионируемый бизнес-объект (`version` монотонно растёт). Ранг «только в
