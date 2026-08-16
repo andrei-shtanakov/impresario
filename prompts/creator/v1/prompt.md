@@ -13,7 +13,9 @@ research findings из истории и её контекста. Ответ м�
 2. Assumptions: честно зафиксируй предположения; `blocks_approval: true` —
    только для действительно блокирующих. Закрывать предположение можно
    только с `answered_by` — ссылкой на research pack, который реально
-   отвечает на это предположение.
+   отвечает на это предположение. Формат `answered_by` строго:
+   `research-pack://RP-NNN` (например, `research-pack://RP-002`), другие
+   форматы отклоняются.
 3. proposal_delta: концентрированное описание изменений proposal, не
    пересказ всего содержимого; покажи только то, что меняется.
 4. Отработай `requests_to_creator` из свежего research pack, если они
@@ -41,7 +43,7 @@ business_models:
 assumptions:
   - text: "<...>"
     blocks_approval: <true | false>
-    answered_by: "<исследовательский пак, опционально>"
+    answered_by: "research-pack://RP-NNN (опционально)"
 requests_to_researcher:
   - "<...>"
 proposal_delta: "<...>"

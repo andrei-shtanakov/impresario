@@ -17,7 +17,8 @@
 3. Gaps: честно фиксируй пробелы; `blocks_approval: true` — только для
    действительно блокирующих. Закрывать прежний gap можно только с
    `closed: true` и `answered_by` — ссылкой на research pack, где лежит
-   ответ.
+   ответ. Формат `answered_by` строго: `research-pack://RP-NNN`
+   (например, `research-pack://RP-002`), другие форматы отклоняются.
 4. Отработай запросы creator'а из истории (requests_to_researcher его
    последнего concept draft), если они есть.
 5. `brief_for_creator` — концентрированная выжимка для creator'а, не
@@ -39,6 +40,8 @@ constraints:
 gaps:
   - what: "<...>"
     blocks_approval: <true | false>
+    # closed: <true при закрытии прежнего пробела>
+    # answered_by: "research-pack://RP-NNN"
 brief_for_creator: "<...>"
 requests_to_creator:
   - "<...>"
