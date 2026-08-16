@@ -1,0 +1,34 @@
+assessment_id: ASMT-116
+idea_ref: idea://IDEA-108
+run_id: RUN-003
+input_hash: sha256:92005983dd804bed25bf3f9ad283b1bc5a5a156356c55d3bc67507219d63a7d4
+policy_version: scoring/v1
+evidence_refs:
+- strategy://ecosystem/2026/G-1
+- standards://ecosystem/STD-7
+- 'spec-runner: хвост H-2 после gates v1.2–v1.3 (memory maestro-gates-v12, 2026-07-13)'
+fit_strategy: 3
+fit_market: 2
+fit_standards: 3
+strategy_blocker: false
+standards_blocker: false
+rationale:
+  fit_strategy: Косвенно ускоряет G-1 (автономный SDLC), но ни одна цель не требует параллелизма
+    прогонов; чистое улучшение производительности.
+  fit_market: Улика спроса — только хвост H-2 в памяти (source); wall-clock цена последовательности
+    не замерена. Балл низкий из-за тонкости улик.
+  fit_standards: Заявлено сохранение детерминизма отчётов, но совместимость параллелизма с
+    gates и последовательной семантикой отчёта (риск для STD-7-класса гарантий) — открытый
+    вопрос без спроектированного ответа.
+confidence: medium
+evaluator:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: prioritizer/v1
+provenance:
+  brief_id: BRF-72854190de68
+  prompt_pack_hash: sha256:db5417a6dbe832ca7afb20fad6aadf7024f8d0b38c4f9b49cac248e21cee7228
+  strategy_hash: sha256:a72ffa3e3224bcf7c38c959ba5fc27bb57e7a18431c0f3470abaabec640d8529
+  standards_hash: sha256:90011fd12ae74de8e8bd76de45279b97ef6aca9fb7b46ce42ae10bb84a5ae7b4
+evaluated_at: '2026-08-16T15:40:15Z'

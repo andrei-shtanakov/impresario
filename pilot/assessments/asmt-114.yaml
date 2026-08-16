@@ -1,0 +1,34 @@
+assessment_id: ASMT-114
+idea_ref: idea://IDEA-106
+run_id: RUN-003
+input_hash: sha256:b68d05f916101afcb154ada7f0a4f5675ca4f835582df10eed318d771733ad1e
+policy_version: scoring/v1
+evidence_refs:
+- strategy://ecosystem/2026/G-2
+- standards://ecosystem/STD-3
+- R-06b reframing 2026-04-25 «Agent benchmarking via ATP» + ecosystem-roadmap §1.1
+fit_strategy: 5
+fit_market: 4
+fit_standards: 4
+strategy_blocker: false
+standards_blocker: false
+rationale:
+  fit_strategy: 'Дословно G-2: ATP как источник routing-grade данных (pass-rate, cost, provenance)
+    для arbiter; идея доводит именно этот механизм до продукта.'
+  fit_market: Потребитель конкретен (arbiter routing), боль названа (выбор по памяти владельца),
+    трек подтверждён двумя записями source (R-06b reframing + roadmap §1.1); свежих замеров
+    стоимости ошибочного выбора нет.
+  fit_standards: Версионированный benchmark-контракт — паттерн STD-3; открытые вопросы каденции/бюджета
+    — операционные, не соответствия.
+confidence: high
+evaluator:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: prioritizer/v1
+provenance:
+  brief_id: BRF-ea9c2b39a43d
+  prompt_pack_hash: sha256:db5417a6dbe832ca7afb20fad6aadf7024f8d0b38c4f9b49cac248e21cee7228
+  strategy_hash: sha256:a72ffa3e3224bcf7c38c959ba5fc27bb57e7a18431c0f3470abaabec640d8529
+  standards_hash: sha256:90011fd12ae74de8e8bd76de45279b97ef6aca9fb7b46ce42ae10bb84a5ae7b4
+evaluated_at: '2026-08-16T15:40:15Z'
