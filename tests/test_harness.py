@@ -589,6 +589,71 @@ def test_ingest_duplicate_hand_written_assessments_is_typed_error(
         _ingest(assess_ws, [])
 
 
+def _manual_v0_assessment(assessment_id: str) -> dict:
+    """A pre-harness manual-v0 record: no `provenance` (outside identity
+    space), mirrors pilot/assessments/asmt-10x.yaml."""
+    return {
+        "assessment_id": assessment_id,
+        "idea_ref": "idea://IDEA-001",
+        "run_id": "RUN-001",
+        "input_hash": "sha256:" + "a" * 64,
+        "policy_version": "scoring/v1",
+        "evidence_refs": ["strategy://ecosystem/2026/G-1"],
+        "fit_strategy": 5,
+        "fit_market": "unknown",
+        "fit_standards": 4,
+        "strategy_blocker": False,
+        "standards_blocker": False,
+        "rationale": {
+            "fit_strategy": "x",
+            "fit_market": "y",
+            "fit_standards": "z",
+        },
+        "confidence": "medium",
+        "evaluator": {
+            "kind": "agent",
+            "id": "claude",
+            "model": "claude-fable-5",
+            "prompt_version": "prioritizer/manual-v0",
+        },
+        "evaluated_at": NOW,
+    }
+
+
+def test_ingest_ignores_provenance_less_manual_v0_duplicates(
+    assess_ws: Path, tmp_path: Path
+) -> None:
+    """Manual-v0 assessments (no provenance) share run_id RUN-001 in the
+    pilot workspace; they must never collide with each other on (run_id,
+    None), and a normal harness pair must still ingest cleanly alongside
+    them."""
+    from impresario.harness import render_briefs
+
+    (assess_ws / "assessments").mkdir(parents=True)
+    (assess_ws / "assessments" / "asmt-101.yaml").write_text(
+        yaml.safe_dump(
+            _manual_v0_assessment("ASMT-101"), allow_unicode=True, sort_keys=False
+        ),
+        encoding="utf-8",
+    )
+    (assess_ws / "assessments" / "asmt-102.yaml").write_text(
+        yaml.safe_dump(
+            _manual_v0_assessment("ASMT-102"), allow_unicode=True, sort_keys=False
+        ),
+        encoding="utf-8",
+    )
+
+    report = render_briefs(assess_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    brief_path = Path(report["briefs"][0]["path"])
+    answer_path = tmp_path / "a.yaml"
+    answer_path.write_text(
+        yaml.safe_dump(_good_answer(), allow_unicode=True), encoding="utf-8"
+    )
+    result = _ingest(assess_ws, [(brief_path, answer_path)], run_id="RUN-001")
+    assert result["ok"] and len(result["written"]) == 1
+    assert len(list((assess_ws / "assessments").glob("*.yaml"))) == 3
+
+
 def test_cli_assess_render_idea_filter(assess_ws: Path, capsys) -> None:
     """Carried-over review item: --idea filtering had zero CLI coverage."""
     import json as jsonlib

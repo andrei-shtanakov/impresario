@@ -285,7 +285,16 @@ def _ingest_locked(
     for d in existing_docs:
         if d.kind != "axis-assessment":
             continue
-        key = (d.data.get("run_id"), (d.data.get("provenance") or {}).get("brief_id"))
+        brief_id = (d.data.get("provenance") or {}).get("brief_id")
+        if brief_id is None:
+            # manual-v0 legacy: assessments authored before this harness
+            # (pilot/assessments/asmt-10x.yaml) carry no `provenance` at
+            # all. They live outside the harness identity space and a
+            # candidate always carries provenance, so they can never
+            # no-op/conflict with a harness pair — only real collisions on
+            # a concrete (run_id, brief_id) string are an error.
+            continue
+        key = (d.data.get("run_id"), brief_id)
         collision = existing_by_key.get(key)
         if collision is not None:
             raise HarnessError(
