@@ -1,6 +1,6 @@
 # Дизайн: researcher/creator-харнесс forconcept-цикла (stage-brief + step)
 
-Дата: 2026-08-16. Статус: на ревью (вторая половина M2-хвоста; уроки
+Дата: 2026-08-16. Статус: утверждён (вторая половина M2-хвоста; уроки
 prioritizer-харнесса и friction №16, №22).
 
 ## Проблема
@@ -98,9 +98,11 @@ Briefs — immutable evidence в `<ws>/briefs/` (файл
 `requests_to_creator[]`.
 
 Поле `gaps[].answered_by` требует расширения потребителя:
-**research-pack/v1 расширяется** опциональным `answered_by`
-(строка minLength 1, форма как у `assumptions[].answered_by` в
-concept-draft/v1) — иначе собранный RP был бы schema-invalid. Это
+**research-pack/v1 расширяется** опциональным `answered_by` с точным
+паттерном `^research-pack://RP-[0-9]{3,}$` (как у
+`assumptions[].answered_by` в concept-draft/v1) — иначе собранный RP
+был бы schema-invalid. Паттерн делает ссылку разрешимой: обычный
+`REF_DANGLING` проверяет её в bundle без нового кода. Это
 расширение множества валидных документов (допустимо без смены `$id`);
 существующие RP валидны; расширение входит в скоуп задачи.
 
