@@ -1,0 +1,37 @@
+run_id: RUN-004
+at: '2026-08-16T15:47:27Z'
+mode: apply
+policy_version: scoring/v1
+weights:
+  fit_strategy: 0.3333
+  fit_market: 0.3333
+  fit_standards: 0.3334
+backlog_ref: backlog://BL-ecosystem
+backlog_version_before: 2
+backlog_version_after: 3
+inputs:
+- idea_ref: idea://IDEA-101
+  input_hash: sha256:f8cb08a88c897fa9b3bdab0e9a508f8aac27ad6e03f29f4cd32c77f604422b0b
+  assessment_ref: assessment://ASMT-109
+- idea_ref: idea://IDEA-102
+  input_hash: sha256:7d84f6906e5a202ebb01bb63c7b5625e989ed22e3fb3ed06637de74350ac5b41
+  assessment_ref: assessment://ASMT-110
+- idea_ref: idea://IDEA-103
+  input_hash: sha256:683d30c77ff208615cfa4df62cdc93412bf3ae0d11ad458613ae19bf16266238
+  assessment_ref: assessment://ASMT-111
+- idea_ref: idea://IDEA-104
+  input_hash: sha256:c4fcf68949247b4aa42e894693a14459f5117b6d561089ae79d28c9180a6576d
+  assessment_ref: assessment://ASMT-112
+- idea_ref: idea://IDEA-105
+  input_hash: sha256:f004f792e509fd4880efde6b0445ce995da5b73bed57e37df0187a1b142ba472
+  assessment_ref: assessment://ASMT-113
+- idea_ref: idea://IDEA-106
+  input_hash: sha256:b68d05f916101afcb154ada7f0a4f5675ca4f835582df10eed318d771733ad1e
+  assessment_ref: assessment://ASMT-114
+- idea_ref: idea://IDEA-107
+  input_hash: sha256:0ba4c3733ae070725240225233be268945067b71bde4162f0b9d75782a2766f7
+  assessment_ref: assessment://ASMT-115
+- idea_ref: idea://IDEA-108
+  input_hash: sha256:92005983dd804bed25bf3f9ad283b1bc5a5a156356c55d3bc67507219d63a7d4
+  assessment_ref: assessment://ASMT-116
+actor: andrei
