@@ -88,9 +88,9 @@
   фаза 1 доставлена и принята (dispatcher PR #132/#133); фаза 2
   (`needs_human`) доставлена (dispatcher#136 закрыт, их PR #137; parity —
   PR #138); **фаза 3 (`qg4_backlog` wait) ЗАКРЫТА 2026-08-17**:
-  dispatcher#154 closed as completed — слаг
+  dispatcher#154 closed as completed — slug
   `product-proposal-qg4-backlog-wait`, реализация dispatcher PR #155
-  (смержен), все четыре условия готовности закрыты тестами на пинованной
+  (merged), все четыре условия готовности закрыты тестами на пинованной
   копии живого зеркала (пин `a9d11fa`), вендорены `ranked-backlog/v1` и
   `loop-resume-decision/v1` (5 контрактов под одним пином), строго
   read-only
