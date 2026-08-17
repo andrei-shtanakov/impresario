@@ -1,0 +1,33 @@
+proposal_id: PP-103
+idea_ref: idea://IDEA-103
+version: 5
+status: ready_for_business
+iteration: 1
+refs:
+  exchange_log: exchange-log://XL-103
+  latest_research_pack: research-pack://RP-002
+  latest_concept_draft: concept-draft://CD-002
+content:
+  delta_log:
+  - iteration: 0
+    concept_draft: CD-001
+    delta: 'Первичное наполнение proposal: value_prop (swap правкой одного каталога), выбранное
+      направление «последняя миля ADR-ECO-003b» с отклонёнными альтернативами (полный сервис
+      — несоразмерен §1.5 и D5; hold — оставляет гарантию ненаблюдаемой), acceptance-контур:
+      (a) arbiter-mcp стартует на user-config каталоге, (b) conformance-фикстуры зелёные у
+      трёх загрузчиков (Maestro/ATP/arbiter), (c) provider-swap смоук: retire+promote записи
+      в каталоге меняет решение route_task без правок кода/конфига Maestro. Бизнес-модель
+      — внутренний cost-avoidance.'
+  - iteration: 1
+    concept_draft: CD-002
+    delta: 'Acceptance-контур уточнён фактурой RP-002: (a) arbiter-mcp при старте валидирует
+      agents.toml против user-config каталога ($ATP_CATALOG/XDG) — скоуп «валидация, не замена
+      enrollment-плоскости»; (b) conformance-фикстуры зелёные у трёх загрузчиков, работа сведена
+      к одному owner-пути (требование к handoff: назвать владельца — devtools-фикстуры либо
+      Maestro shared-lib — или явную последовательность); (c) swap-смоук: retire+promote правкой
+      каталога через явный $ATP_CATALOG; без правок кода и конфига у потребителей (Maestro);
+      на стороне arbiter допускается scaffold-apply agents.toml + рестарт; решение route_task
+      отражает промоушн. Value_prop и бизнес-модель уточнены оговоркой про scaffold-apply.
+      Предположение о готовности Maestro закрыто RP-002.'
+created_at: '2026-08-17T11:43:18Z'
+updated_at: '2026-08-17T11:49:10Z'

@@ -1,0 +1,82 @@
+id: RP-002
+idea_ref: idea://IDEA-103
+proposal_ref: proposal://PP-103
+iteration: 1
+findings:
+- claim: 'Загрузчик каталога на стороне Maestro существует и шипнут: maestro/catalog.py (resolve_catalog_path
+    + load_catalog, typed-ошибки на corrupt/invalid каталог) и CLI maestro models init|list|discover|
+    update (ADR-003b D3, закрыт веткой feat/models-cli).'
+  source_ref: Maestro/maestro/catalog.py; Maestro/TODO.md (Catalog distribution follow-ups)
+  confidence: high
+- claim: 'Резолюция пути у Maestro отклоняется от D2: только $ATP_CATALOG, без XDG-fallback
+    — XDG-путь заведён открытым пунктом @id:xdg-catalog-path с триггером «<eco> namespace
+    ратифицирован». Три загрузчика сегодня резолвят путь неодинаково (arbiter/ATP: $ATP_CATALOG
+    → XDG atp/; Maestro: только $ATP_CATALOG).'
+  source_ref: Maestro/maestro/catalog.py (resolve_catalog_path docstring); Maestro/TODO.md
+    (@id:xdg-catalog-path)
+  confidence: high
+- claim: 'Conformance трёх загрузчиков отслеживается в ДВУХ местах с разными владельцами:
+    arbiter @id:catalog-conformance-fixtures (owner devtools, общие фикстуры) и Maestro @id:catalog-loader-shared-lib
+    (shared PyPI lib + cross-reader behavioral conformance test) — единого owner-пути нет.'
+  source_ref: arbiter/TODO.md (@id:catalog-conformance-fixtures); Maestro/TODO.md (@id:catalog-loader-shared-lib)
+  confidence: high
+- claim: 'Retire-семантика уже встроена в валидацию каталога arbiter: lifecycle «retired»
+    парсится, а ссылка агента на retired-модель — ошибка валидации (conformance Check 5: «agent
+    references retired model»), т.е. неконсистентный retire каталог отвергает сам.'
+  source_ref: arbiter/arbiter-core/src/catalog/mod.rs (Check 5, retired lifecycle)
+  confidence: high
+- claim: 'Скаффолд agents.toml — read-only генератор: scripts/ gen_agents_scaffold.py читает
+    каталог + текущий config/agents.toml и печатает reconciled-скаффолд с отчётом kept/new/stale;
+    применение — ручной шаг человека. Сценарий retire+promote сегодня: правка каталога → генерация
+    → ручной apply agents.toml → рестарт.'
+  source_ref: 'arbiter/scripts/gen_agents_scaffold.py (module docstring: READ-ONLY)'
+  confidence: high
+- claim: 'Скоуп пункта arbiter-mcp-catalog-loader по дизайн-доку — ВАЛИДАЦИЯ agents.toml против
+    user-config каталога при старте сервера, а не замена agents.toml каталогом: enrollment-плоскость
+    (agents.toml) остаётся конфигом сервера, каталог — источником истины о моделях/харнессах.'
+  source_ref: arbiter/docs/2026-07-05-catalog-loader-design.md §1 («НЕ делаем» + следующий
+    шаг)
+  confidence: high
+- claim: 'Известный дефект model-плоскости у Maestro: один observed model id под двумя vendors
+    в манифесте рендерится в непарсибельный Plane-1 блок (@id:models-duplicate-vendor-detection)
+    — на swap-смоуке с мульти-vendor каталогом можно наступить.'
+  source_ref: Maestro/TODO.md (@id:models-duplicate-vendor-detection)
+  confidence: medium
+constraints:
+- kind: internal
+  statement: 'Swap-смоук должен задавать каталог явно через $ATP_CATALOG (не через XDG): это
+    единственный слой резолюции, общий для всех трёх загрузчиков до закрытия xdg-catalog-path
+    у Maestro.'
+  source_ref: Maestro/maestro/catalog.py; arbiter/docs/2026-07-05-catalog-loader-design.md
+    §2
+gaps:
+- what: 'Не определён измеримый критерий «смена провайдера без правок потребителей» (запрос
+    RP-001 к creator): закрыт — creator задал acceptance-контур (CD-001), а данный пак уточняет
+    его фактурой: swap = правка каталога + scaffold-apply agents.toml на стороне владельца
+    arbiter; инвариант «без правок» относится к потребителям (Maestro), не к оператору arbiter.'
+  blocks_approval: false
+  closed: true
+  answered_by: research-pack://RP-002
+- what: Разошедшееся владение conformance-работой (devtools-фикстуры vs Maestro shared-lib)
+    не сведено к одному пути; для handoff'а по результату QG-5 нужно назвать одного владельца
+    или явную последовательность. Решается при handoff, концепт не блокирует.
+  blocks_approval: false
+brief_for_creator: 'Оба запроса отработаны. (1) Maestro-звено готово как участник conformance:
+  загрузчик и models-CLI шипнуты, но резолюция пути — только $ATP_CATALOG (XDG ждёт <eco>-ратификации),
+  и conformance-работа задвоена между devtools и Maestro — в acceptance зафиксируй $ATP_CATALOG
+  как канал смоука и один owner-путь для conformance. (2) Механика swap в arbiter: retire-валидация
+  уже в каталоге (Check 5), но применение — через read-only скаффолд с ручным apply agents.toml,
+  а mcp-интеграция по дизайну — валидация agents.toml против каталога при старте, не его замена.
+  Уточни acceptance (c): «retire+promote правкой каталога; без правок кода/конфига у ПОТРЕБИТЕЛЕЙ;
+  на стороне arbiter допускается scaffold-apply agents.toml + рестарт». Новых блокирующих
+  фактов нет.'
+requests_to_creator: []
+produced_by:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: researcher/v1
+produced_at: '2026-08-17T11:48:34Z'
+provenance:
+  brief_id: SBR-a6de9d5c12de
+  prompt_pack_hash: sha256:050d4bfbe16fb163fbeea8462dc3a038f5e779d0f62a28a5f7f52451eb1f6964

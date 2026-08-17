@@ -1,0 +1,10 @@
+{"event": "transition", "from": "draft", "proposal_version": 2, "to": "in_iteration"}
+{"artifact": "RP-001", "event": "artifact_written", "key": "LOOP-103:0:researcher", "kind": "research-pack", "output_hash": "sha256:f3ab0cb5a7998655aaeaa50482759870775e23b8671babfdbe34c44c23686f1f"}
+{"artifact": "CD-001", "event": "artifact_written", "key": "LOOP-103:0:creator", "kind": "concept-draft", "output_hash": "sha256:3d20961792a99259cd0f9bd6f6603a636d48e89fa7a7ede6c79dd94ff5308374"}
+{"concept_draft": "CD-001", "event": "delta_applied", "iteration": 0, "proposal_version": 3}
+{"event": "verdict", "iteration": 0, "reason": "open: 0 critical(s), 2 request(s)", "verdict": "continue"}
+{"artifact": "RP-002", "event": "artifact_written", "key": "LOOP-103:1:researcher", "kind": "research-pack", "output_hash": "sha256:05ede83d7e5a4f1fa1008d7895fd0bc25561e41dbbd2d2dd52907f99bab63947"}
+{"artifact": "CD-002", "event": "artifact_written", "key": "LOOP-103:1:creator", "kind": "concept-draft", "output_hash": "sha256:635de4110e4894c56c853daeb40ba6699faad52981a78f5cae352ea90ee91a24"}
+{"concept_draft": "CD-002", "event": "delta_applied", "iteration": 1, "proposal_version": 4}
+{"event": "verdict", "iteration": 1, "reason": "no open critical assumptions/gaps and no open requests", "verdict": "ready_for_business"}
+{"event": "transition", "from": "in_iteration", "proposal_version": 5, "to": "ready_for_business"}

@@ -1,0 +1,230 @@
+schema_version: stage-brief/v1
+brief_id: SBR-63ee1b96ee56
+loop_id: LOOP-103
+iteration: 1
+role: creator
+prompt_version: creator/v1
+prompt_pack_hash: sha256:b0fd734537a20b2edccdf34dbd5cf8a87b9ac3f761e6554349f77824c1651f8a
+idea_input_hash: sha256:dcd115b53c02ce294d6be46ee5ca4ac062d866be98d21d0e3efb71beaf9935a1
+proposal_hash: sha256:6200bb3cc06ba891daaea1b80fc82979a79bd4b1d2162cc124d084279c89c1ee
+history_hash: sha256:23fd896ccb9176c9fd4802443918f339cb7dd182d7e5577fa250e891f9ad7606
+prompt_hash: sha256:49a591c00a027149ff75266694f9279470a0ab1aca14f52aed4d1d740c9e56f0
+prompt: "# Creator — forconcept-цикл — creator/v1\n\nТы — creator двухагентного цикла product-governance.\
+  \ Твоя задача на\nэту итерацию: собрать concept pack по идее с учётом текущего proposal,\n\
+  research findings из истории и её контекста. Ответ материализует\nдетерминированный инструмент;\
+  \ ты авторишь только контент.\n\n## Правила\n\n1. Alternatives: предложи ≥3 содержательных\
+  \ направлений, либо одно\n   направление с явным `single_path_justification`. Каждое направление\n\
+  \   должно быть осмысленной альтернативой, а не вариацией.\n2. Assumptions: честно зафиксируй\
+  \ предположения; `blocks_approval: true` —\n   только для действительно блокирующих. Закрывать\
+  \ предположение можно\n   только с `answered_by` — ссылкой на research pack, который реально\n\
+  \   отвечает на это предположение. Формат `answered_by` строго:\n   `research-pack://RP-NNN`\
+  \ (например, `research-pack://RP-002`), другие\n   форматы отклоняются.\n3. proposal_delta:\
+  \ концентрированное описание изменений proposal, не\n   пересказ всего содержимого; покажи\
+  \ только то, что меняется.\n4. Отработай `requests_to_creator` из свежего research pack,\
+  \ если они\n   есть.\n5. `value_prop` — одна-две фразы ценности для стейкхолдеров; делай\n\
+  \   конкретно, не абстрактно.\n\n## Формат ответа\n\nВерни РОВНО один YAML-документ (без\
+  \ Markdown-ограждений):\n\nschema_version: concept-answer/v1\nvalue_prop: \"<...>\"\nalternatives:\n\
+  \  - direction: \"<...>\"\n    summary: \"<...>\"\n  - direction: \"<...>\"\n    summary:\
+  \ \"<...>\"\nchosen_direction:\n  direction: \"<...>\"\n  why: \"<...>\"\n  tentative: <true\
+  \ | false (опционально)>\nbusiness_models:\n  - \"<...>\"\nassumptions:\n  - text: \"<...>\"\
+  \n    blocks_approval: <true | false>\n    answered_by: \"research-pack://RP-NNN (опционально)\"\
+  \nrequests_to_researcher:\n  - \"<...>\"\nproposal_delta: \"<...>\"\nsingle_path_justification:\
+  \ \"<опционально, если только одна альтернатива>\"\n\nНе добавляй других полей: идентификаторы,\
+  \ ссылки на idea, номера итераций\nи метки времени авторит инструмент, не ты.\n\n## Идея\n\
+  \nid: IDEA-103\ntitle: Провайдеро-независимый слой моделей на базе arbiter\ndate: '2026-08-12'\n\
+  source:\n  kind: strategy\n  ref: prograph-vault/authored/notes/ecosystem-roadmap.md §1.5\
+  \ (owned model layer, de-urgentized)\npriority: low\nbusiness_attractiveness: 4\nstatus:\
+  \ selected\ntype: new_product\nhypothesis: Слой provider-независимого роутинга моделей в\
+  \ arbiter (каталог + route_task поверх\n  routing-grade данных ATP) даст всем инструментам\
+  \ экосистемы устойчивость к уходу любого\n  hosted-каталога моделей; выгода — смена провайдера\
+  \ без правок в потребителях.\nessence: Каталожный слой arbiter как единственная точка знания\
+  \ о провайдерах моделей.\nproblem: Уход внешнего каталога (прецедент GitHub Models) требует\
+  \ ревизии потребителей.\nopen_questions:\n- Насколько текущий arbiter-cli catalog loader\
+  \ покрывает требования?\n\n\n## Текущий proposal\n\nproposal_id: PP-103\nidea_ref: idea://IDEA-103\n\
+  version: 3\nstatus: in_iteration\niteration: 0\nrefs:\n  exchange_log: exchange-log://XL-103\n\
+  \  latest_research_pack: research-pack://RP-001\n  latest_concept_draft: concept-draft://CD-001\n\
+  content:\n  delta_log:\n  - iteration: 0\n    concept_draft: CD-001\n    delta: 'Первичное\
+  \ наполнение proposal: value_prop (swap правкой одного каталога), выбранное\n      направление\
+  \ «последняя миля ADR-ECO-003b» с отклонёнными альтернативами (полный сервис\n      — несоразмерен\
+  \ §1.5 и D5; hold — оставляет гарантию ненаблюдаемой), acceptance-контур:\n      (a) arbiter-mcp\
+  \ стартует на user-config каталоге, (b) conformance-фикстуры зелёные у\n      трёх загрузчиков\
+  \ (Maestro/ATP/arbiter), (c) provider-swap смоук: retire+promote записи\n      в каталоге\
+  \ меняет решение route_task без правок кода/конфига Maestro. Бизнес-модель\n      — внутренний\
+  \ cost-avoidance.'\ncreated_at: '2026-08-17T11:43:18Z'\nupdated_at: '2026-08-17T11:46:51Z'\n\
+  \n\n## История цикла (research packs и concept drafts по порядку)\n\n### researcher — итерация\
+  \ 0 — RP-001\n\nid: RP-001\nidea_ref: idea://IDEA-103\nproposal_ref: proposal://PP-103\n\
+  iteration: 0\nfindings:\n- claim: 'GitHub Models полностью закрыт 2026-07-30, но exposure\
+  \ экосистемы ≈ ноль: прямых\n    вызовов inference API не найдено, все model-пресеты spec-runner\
+  \ — CLI-агенты; стратегический\n    вывод «своя provider-абстракция полезна» сохранён, но\
+  \ направление явно де-приоритизировано\n    («someday», не P0).'\n  source_ref: prograph-vault/authored/notes/ecosystem-roadmap.md\
+  \ §0, §1.5\n  confidence: high\n- claim: 'Каталожный слой в arbiter уже реализован и влит:\
+  \ arbiter_core::catalog (парсинг\n    трёх плоскостей, валидация V1–V7, резолюция $ATP_CATALOG\
+  \ → XDG atp/, fail-loud, без bundled-дефолта)\n    плюс CLI arbiter-cli catalog path|check|list\
+  \ (merge 6a966a0, PR #39).'\n  source_ref: 'arbiter/docs/2026-07-05-catalog-loader-design.md;\
+  \ arbiter/TODO.md («Сделано»:\n    ADR-ECO-003b загрузчик user-config каталога)'\n  confidence:\
+  \ high\n- claim: 'route_task существует и эксплуатируется: arbiter_mcp::tools::route_task,\
+  \ Maestro\n    передаёт authority_context в constraints (RD-006 M4), ответ несёт metadata.decision_id\n\
+  \    (arbiter#9).'\n  source_ref: arbiter/arbiter-cli/src/main.rs (use arbiter_mcp::tools::route_task);\
+  \ arbiter/TODO.md\n    (RD-006 M4, arbiter#9)\n  confidence: high\n- claim: 'Routing-grade\
+  \ данные из ATP уже текут контрактным путём и влияют на роутинг: проводка\n    report_benchmark\
+  \ → benchmark_runs → get_benchmark_score → apply_benchmark_rerank доказана\n    (R-07 Phase\
+  \ 1), а crossover-гейт на втором бенчмарке (req-extraction, atp-platform#279)\n    закрыт\
+  \ 2026-08-16 с выводом «сигнал task-зависим, глобального bias нет».'\n  source_ref: arbiter/docs/2026-08-16-r07-crossover-gate-analysis.md\n\
+  \  confidence: high\n- claim: 'Зеркальный загрузчик на стороне ATP тоже шипнут (ADR-003b\
+  \ SP-A, 2026-07-07): atp/model_catalog/\n    с той же D2-резолюцией и CLI atp models init/list;\
+  \ method/agents-catalog.toml остаётся\n    dev-SSOT и в wheel не попадает.'\n  source_ref:\
+  \ atp-platform/TODO.md (ADR-003b SP-A ✅ 2026-07-07)\n  confidence: high\n- claim: Идентичность\
+  \ моделей унифицирована конвенцией agent_id <harness>@<model> с catalog-driven\n    скаффолдом\
+  \ agents.toml и retired-ключами — каталог уже де-факто точка знания о моделях.\n  source_ref:\
+  \ 'arbiter/TODO.md («Каталог и agent_id», PR #24–#38)'\n  confidence: high\n- claim: 'Ответ\
+  \ на открытый вопрос идеи «насколько arbiter-cli catalog loader покрывает требования»:\n\
+  \    loader покрывает CLI-плоскость (path|check|list) полностью, но runtime arbiter-mcp\
+  \ каталог\n    НЕ потребляет — сервер стартует на вендоренном config/agents.toml, шипнутый\
+  \ бинарник не\n    видит $ATP_CATALOG/XDG; это открытый пункт arbiter @id:arbiter-mcp-catalog-loader.'\n\
+  \  source_ref: 'arbiter/TODO.md (open: arbiter-mcp-catalog-loader); arbiter/docs/2026-07-05-catalog-loader-design.md\n\
+  \    §1 «НЕ делаем»'\n  confidence: high\nconstraints:\n- kind: internal\n  statement: Discovery\
+  \ моделей внутри arbiter запрещён — владелец discovery devtools (ADR-ECO-003a\n    D5);\
+  \ роутинг не должен опрашивать провайдеров.\n  source_ref: arbiter/TODO.md (границы, D5)\n\
+  - kind: standard\n  statement: 'Контракт каталога зафиксирован ADR-ECO-003b: user-config\
+  \ ($ATP_CATALOG → XDG\n    atp/), fail-loud, без bundled-дефолта; SSOT — atp-platform/method/agents-catalog.toml,\n\
+  \    потребители вендорят/резолвят по контракту, runtime не читает dev-ресурсы.'\n  source_ref:\
+  \ arbiter/docs/2026-07-05-catalog-loader-design.md §2\n- kind: strategy\n  statement: 'Направление\
+  \ де-приоритизировано владельцем стратегии: §1.5 помечено «de-urgentized»,\n    это ПОЗДНЕЙШАЯ\
+  \ запись, отменяющая срочность первоначального анализа; более новых записей,\n    возвращающих\
+  \ срочность, в источнике нет.'\n  source_ref: prograph-vault/authored/notes/ecosystem-roadmap.md\
+  \ §1.5\n- kind: internal\n  statement: 'Полирепо-граница: реализация живёт в arbiter / atp-platform\
+  \ / devtools; product-governance\n    производит только proposal и handoff владельцам, не\
+  \ правки чужих репо.'\n  source_ref: all_ai_orchestrators/CLAUDE.md (границы подпроектов)\n\
+  gaps:\n- what: 'Последняя миля ADR-ECO-003b не пройдена: arbiter-mcp не подключён к arbiter_core::catalog\n\
+  \    (открытый пункт arbiter-mcp-catalog-loader) и нет кросс-языкового conformance-теста\
+  \ трёх\n    загрузчиков (catalog-conformance-fixtures, владелец devtools) — без них гарантия\
+  \ «смена\n    провайдера без правок потребителей» не наблюдаема.'\n  blocks_approval: false\n\
+  - what: 'Не определён измеримый критерий ценности «смена провайдера без правок в потребителях»:\n\
+  \    какой потребитель — референсный, каким evidence подтверждается swap; нужен от creator\n\
+  \    как acceptance-контур концепта.'\n  blocks_approval: false\nbrief_for_creator: 'Идея\
+  \ во многом уже реализована владельцами: каталожные загрузчики шипнуты\n  с обеих сторон\
+  \ (arbiter PR #39, ATP SP-A), route_task живой, routing-grade данные ATP реально\n  влияют\
+  \ на роутинг (rerank, crossover-гейт закрыт 2026-08-16, сигнал task-зависим). Продуктовый\n\
+  \  остаток — «последняя миля»: (1) arbiter-mcp потребляет user-config каталог (открытый\
+  \ пункт\n  arbiter), (2) conformance трёх загрузчиков (devtools), (3) наблюдаемая гарантия\
+  \ provider-swap\n  для референсного потребителя. Срочность низкая — §1.5 де-приоритизирован,\
+  \ exposure к уходу\n  GitHub Models ноль. Рекомендуемый скоуп концепта: не «новый продукт»,\
+  \ а закрытие последней\n  мили ADR-ECO-003b с измеримым swap-критерием; учесть запрет discovery\
+  \ в arbiter (D5).'\nrequests_to_creator:\n- 'Определи измеримый acceptance «смена провайдера\
+  \ без правок потребителей»: референсный потребитель,\n  сценарий swap, какое evidence его\
+  \ подтверждает.'\n- 'Позиционируй концепт относительно де-приоритизации §1.5: почему делать\
+  \ сейчас (например,\n  малый остаток при готовой базе) — или честно предложи низкоприоритетное\
+  \ окно.'\nproduced_by:\n  kind: agent\n  id: claude\n  model: claude-fable-5\n  prompt_version:\
+  \ researcher/v1\nproduced_at: '2026-08-17T11:45:41Z'\nprovenance:\n  brief_id: SBR-723635d45160\n\
+  \  prompt_pack_hash: sha256:050d4bfbe16fb163fbeea8462dc3a038f5e779d0f62a28a5f7f52451eb1f6964\n\
+  \n\n### creator — итерация 0 — CD-001\n\nid: CD-001\nidea_ref: idea://IDEA-103\nproposal_ref:\
+  \ proposal://PP-103\niteration: 0\nvalue_prop: Любой инструмент экосистемы переживает смену\
+  \ или уход провайдера моделей правкой\n  одного user-config каталога — без правок кода и\
+  \ конфигов потребителей; стоимость «переезда\n  с провайдера» падает с ревизии всех потребителей\
+  \ (прецедент GitHub Models) до одного отредактированного\n  TOML.\nalternatives:\n- direction:\
+  \ Последняя миля ADR-ECO-003b (выбрано)\n  summary: 'Не новый продукт, а закрытие остатка\
+  \ уже построенного слоя: (1) arbiter-mcp потребляет\n    user-config каталог ($ATP_CATALOG/XDG)\
+  \ вместо вендоренного config/agents.toml — открытый\n    пункт arbiter-mcp-catalog-loader;\
+  \ (2) кросс-языковой conformance-тест трёх загрузчиков\n    на общих фикстурах (catalog-conformance-fixtures,\
+  \ devtools); (3) наблюдаемый provider-swap\n    смоук на референсном потребителе. Малый\
+  \ остаток при готовой базе.'\n- direction: Полноценный продуктовый model-layer сервис\n\
+  \  summary: 'Довести идею до «единственной точки знания о провайдерах» как сервиса: каталог\n\
+  \    + роутинг + управляемый lifecycle моделей (retire/promote) + миграция всех потребителей\n\
+  \    на слой. Противоречит де-приоритизации §1.5 (это месяцы работы без горящей причины)\
+  \ и\n    упирается в границу D5 (discovery — не в arbiter); отклонено как несоразмерное\
+  \ ценности\n    сейчас.'\n- direction: Hold до внешнего триггера\n  summary: 'Зафиксировать\
+  \ концепт и заморозить до реального триггера (уход провайдера, который\n    нас касается;\
+  \ второй потребитель, требующий swap). Честно по букве §1.5, но оставляет\n    уже оплаченную\
+  \ базу (загрузчики с обеих сторон, rerank-пайплайн) не сомкнутой: гарантия\n    swap так\
+  \ и останется ненаблюдаемой, а пункт arbiter-mcp-catalog-loader — висящим.'\nchosen_direction:\n\
+  \  direction: Последняя миля ADR-ECO-003b\n  why: 'Ответ на де-приоритизацию §1.5 — не «это\
+  \ срочно», а «это дёшево»: база уже построена\n    и оплачена (loaders arbiter PR #39 и\
+  \ ATP SP-A, route_task живой, rerank доказан crossover-гейтом\n    2026-08-16), остаток\
+  \ — два уже заведённых открытых пункта у владельцев плюс смоук. Малая\n    инвестиция превращает\
+  \ «sound architecture for later» в закрытый, наблюдаемый контракт,\n    после чего направление\
+  \ можно честно закрыть.'\nbusiness_models:\n- 'Внутренняя платформенная инвестиция (cost-avoidance):\
+  \ страховка от повторения сценария\n  GitHub Models — цена реакции на уход провайдера фиксируется\
+  \ на уровне «правка каталога»,\n  а не «ревизия всех потребителей».'\nassumptions:\n- text:\
+  \ 'Оба недостающих куска уже заведены как открытые пункты у владельцев (arbiter: arbiter-mcp-catalog-loader;\n\
+  \    devtools: catalog-conformance-fixtures) — proposal не создаёт им новую работу, а приоритизирует\n\
+  \    существующую.'\n  blocks_approval: false\n  answered_by: research-pack://RP-001\n-\
+  \ text: 'Срочность не вернулась: §1.5 «de-urgentized» — позднейшая запись источника стратегии,\n\
+  \    более новых отменяющих записей нет.'\n  blocks_approval: false\n  answered_by: research-pack://RP-001\n\
+  - text: Схема каталога (три плоскости ADR-ECO-003) достаточна для swap-сценария без новых\n\
+  \    полей; если реализация вскроет недостающее поле — это правка схемы SSOT, не нового\
+  \ контракта.\n  blocks_approval: false\n- text: Референсный потребитель для swap-смоука\
+  \ — Maestro через route_task (уже передаёт authority_context,\n    RD-006 M4); его собственный\
+  \ загрузчик каталога готов участвовать в conformance-наборе.\n  blocks_approval: false\n\
+  requests_to_researcher:\n- 'Проверь состояние загрузчика каталога на стороне Maestro (третий\
+  \ участник conformance-набора):\n  существует ли, читает ли user-config по D2-резолюции,\
+  \ есть ли открытые пункты — иначе acceptance\n  «три загрузчика» держится на невыясненном\
+  \ звене.'\n- 'Уточни механику swap-смоука в arbiter: покрывает ли catalog-driven скаффолд\
+  \ agents.toml\n  (retired-ключи, промоушн) сценарий «retire + promote» без ручной правки\
+  \ agents.toml, когда\n  arbiter-mcp начнёт читать user-config каталог.'\nproposal_delta:\
+  \ 'Первичное наполнение proposal: value_prop (swap правкой одного каталога),\n  выбранное\
+  \ направление «последняя миля ADR-ECO-003b» с отклонёнными альтернативами (полный\n  сервис\
+  \ — несоразмерен §1.5 и D5; hold — оставляет гарантию ненаблюдаемой), acceptance-контур:\n\
+  \  (a) arbiter-mcp стартует на user-config каталоге, (b) conformance-фикстуры зелёные у\
+  \ трёх\n  загрузчиков (Maestro/ATP/arbiter), (c) provider-swap смоук: retire+promote записи\
+  \ в каталоге\n  меняет решение route_task без правок кода/конфига Maestro. Бизнес-модель\
+  \ — внутренний cost-avoidance.'\nproduced_by:\n  kind: agent\n  id: claude\n  model: claude-fable-5\n\
+  \  prompt_version: creator/v1\nproduced_at: '2026-08-17T11:46:51Z'\nprovenance:\n  brief_id:\
+  \ SBR-2f38fc56ae7e\n  prompt_pack_hash: sha256:b0fd734537a20b2edccdf34dbd5cf8a87b9ac3f761e6554349f77824c1651f8a\n\
+  based_on_research:\n  ref: research-pack://RP-001\n  iteration: 0\n\n\n### researcher —\
+  \ итерация 1 — RP-002\n\nid: RP-002\nidea_ref: idea://IDEA-103\nproposal_ref: proposal://PP-103\n\
+  iteration: 1\nfindings:\n- claim: 'Загрузчик каталога на стороне Maestro существует и шипнут:\
+  \ maestro/catalog.py (resolve_catalog_path\n    + load_catalog, typed-ошибки на corrupt/invalid\
+  \ каталог) и CLI maestro models init|list|discover|\n    update (ADR-003b D3, закрыт веткой\
+  \ feat/models-cli).'\n  source_ref: Maestro/maestro/catalog.py; Maestro/TODO.md (Catalog\
+  \ distribution follow-ups)\n  confidence: high\n- claim: 'Резолюция пути у Maestro отклоняется\
+  \ от D2: только $ATP_CATALOG, без XDG-fallback\n    — XDG-путь заведён открытым пунктом\
+  \ @id:xdg-catalog-path с триггером «<eco> namespace\n    ратифицирован». Три загрузчика\
+  \ сегодня резолвят путь неодинаково (arbiter/ATP: $ATP_CATALOG\n    → XDG atp/; Maestro:\
+  \ только $ATP_CATALOG).'\n  source_ref: Maestro/maestro/catalog.py (resolve_catalog_path\
+  \ docstring); Maestro/TODO.md\n    (@id:xdg-catalog-path)\n  confidence: high\n- claim:\
+  \ 'Conformance трёх загрузчиков отслеживается в ДВУХ местах с разными владельцами:\n   \
+  \ arbiter @id:catalog-conformance-fixtures (owner devtools, общие фикстуры) и Maestro @id:catalog-loader-shared-lib\n\
+  \    (shared PyPI lib + cross-reader behavioral conformance test) — единого owner-пути нет.'\n\
+  \  source_ref: arbiter/TODO.md (@id:catalog-conformance-fixtures); Maestro/TODO.md (@id:catalog-loader-shared-lib)\n\
+  \  confidence: high\n- claim: 'Retire-семантика уже встроена в валидацию каталога arbiter:\
+  \ lifecycle «retired»\n    парсится, а ссылка агента на retired-модель — ошибка валидации\
+  \ (conformance Check 5: «agent\n    references retired model»), т.е. неконсистентный retire\
+  \ каталог отвергает сам.'\n  source_ref: arbiter/arbiter-core/src/catalog/mod.rs (Check\
+  \ 5, retired lifecycle)\n  confidence: high\n- claim: 'Скаффолд agents.toml — read-only\
+  \ генератор: scripts/ gen_agents_scaffold.py читает\n    каталог + текущий config/agents.toml\
+  \ и печатает reconciled-скаффолд с отчётом kept/new/stale;\n    применение — ручной шаг\
+  \ человека. Сценарий retire+promote сегодня: правка каталога → генерация\n    → ручной apply\
+  \ agents.toml → рестарт.'\n  source_ref: 'arbiter/scripts/gen_agents_scaffold.py (module\
+  \ docstring: READ-ONLY)'\n  confidence: high\n- claim: 'Скоуп пункта arbiter-mcp-catalog-loader\
+  \ по дизайн-доку — ВАЛИДАЦИЯ agents.toml против\n    user-config каталога при старте сервера,\
+  \ а не замена agents.toml каталогом: enrollment-плоскость\n    (agents.toml) остаётся конфигом\
+  \ сервера, каталог — источником истины о моделях/харнессах.'\n  source_ref: arbiter/docs/2026-07-05-catalog-loader-design.md\
+  \ §1 («НЕ делаем» + следующий\n    шаг)\n  confidence: high\n- claim: 'Известный дефект\
+  \ model-плоскости у Maestro: один observed model id под двумя vendors\n    в манифесте рендерится\
+  \ в непарсибельный Plane-1 блок (@id:models-duplicate-vendor-detection)\n    — на swap-смоуке\
+  \ с мульти-vendor каталогом можно наступить.'\n  source_ref: Maestro/TODO.md (@id:models-duplicate-vendor-detection)\n\
+  \  confidence: medium\nconstraints:\n- kind: internal\n  statement: 'Swap-смоук должен задавать\
+  \ каталог явно через $ATP_CATALOG (не через XDG): это\n    единственный слой резолюции,\
+  \ общий для всех трёх загрузчиков до закрытия xdg-catalog-path\n    у Maestro.'\n  source_ref:\
+  \ Maestro/maestro/catalog.py; arbiter/docs/2026-07-05-catalog-loader-design.md\n    §2\n\
+  gaps:\n- what: 'Не определён измеримый критерий «смена провайдера без правок потребителей»\
+  \ (запрос\n    RP-001 к creator): закрыт — creator задал acceptance-контур (CD-001), а данный\
+  \ пак уточняет\n    его фактурой: swap = правка каталога + scaffold-apply agents.toml на\
+  \ стороне владельца\n    arbiter; инвариант «без правок» относится к потребителям (Maestro),\
+  \ не к оператору arbiter.'\n  blocks_approval: false\n  closed: true\n  answered_by: research-pack://RP-002\n\
+  - what: Разошедшееся владение conformance-работой (devtools-фикстуры vs Maestro shared-lib)\n\
+  \    не сведено к одному пути; для handoff'а по результату QG-5 нужно назвать одного владельца\n\
+  \    или явную последовательность. Решается при handoff, концепт не блокирует.\n  blocks_approval:\
+  \ false\nbrief_for_creator: 'Оба запроса отработаны. (1) Maestro-звено готово как участник\
+  \ conformance:\n  загрузчик и models-CLI шипнуты, но резолюция пути — только $ATP_CATALOG\
+  \ (XDG ждёт <eco>-ратификации),\n  и conformance-работа задвоена между devtools и Maestro\
+  \ — в acceptance зафиксируй $ATP_CATALOG\n  как канал смоука и один owner-путь для conformance.\
+  \ (2) Механика swap в arbiter: retire-валидация\n  уже в каталоге (Check 5), но применение\
+  \ — через read-only скаффолд с ручным apply agents.toml,\n  а mcp-интеграция по дизайну\
+  \ — валидация agents.toml против каталога при старте, не его замена.\n  Уточни acceptance\
+  \ (c): «retire+promote правкой каталога; без правок кода/конфига у ПОТРЕБИТЕЛЕЙ;\n  на стороне\
+  \ arbiter допускается scaffold-apply agents.toml + рестарт». Новых блокирующих\n  фактов\
+  \ нет.'\nrequests_to_creator: []\nproduced_by:\n  kind: agent\n  id: claude\n  model: claude-fable-5\n\
+  \  prompt_version: researcher/v1\nproduced_at: '2026-08-17T11:48:34Z'\nprovenance:\n  brief_id:\
+  \ SBR-a6de9d5c12de\n  prompt_pack_hash: sha256:050d4bfbe16fb163fbeea8462dc3a038f5e779d0f62a28a5f7f52451eb1f6964\n\
+  \n"
