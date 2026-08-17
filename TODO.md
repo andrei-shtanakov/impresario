@@ -86,9 +86,12 @@
   остаётся их приёмка drift-вахты (`impresario-contract-drift-acceptance`)
 - [ ] dispatcher/Robin: read-only `product_proposal/gate_waiting` observation —
   фаза 1 доставлена и принята (dispatcher PR #132/#133); фаза 2
-  (`needs_human`) разблокирована пунктом ниже, handoff подан 2026-08-12:
-  inbox dispatcher#136 (вендорить `loop-state/v1` @ merge `51e3103`);
-  остаток пункта — за dispatcher
+  (`needs_human`) доставлена (dispatcher#136 закрыт, их PR #137; parity —
+  PR #138); фаза 3 (`qg4_backlog` wait, из approved PP-104) предложена
+  2026-08-17: inbox dispatcher#154 — identity `(backlog id, version)`,
+  ожидание гасят все исходы QG-4 с учётом supersedes; решение о
+  принятии/отклонении — за владельцем dispatcher; остаток пункта — за
+  dispatcher
 - [x] **Сигнал `needs_human` законтрактован (loop-state/v1)**: `loop.state`
   промоутирован в контракт (projection, не журнал; identity
   `(loop_id, stop.iteration)`, freshness `stop.at`, terminal сохраняет
