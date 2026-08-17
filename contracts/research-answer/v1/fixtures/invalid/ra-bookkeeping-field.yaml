@@ -1,0 +1,15 @@
+schema_version: research-answer/v1
+id: RP-001
+findings:
+  - claim: "This is a finding"
+    source_ref: "document://DOC-001"
+    confidence: high
+constraints:
+  - kind: internal
+    statement: "Internal constraint"
+gaps:
+  - what: "Need more data"
+    blocks_approval: true
+brief_for_creator: "Brief for creator about findings"
+requests_to_creator:
+  - "Please review findings"

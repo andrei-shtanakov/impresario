@@ -846,4 +846,12 @@ def run_loop(
                 proposal_version=proposal.data["version"],
                 report=ctx.report,
             )
+        # iteration:N pauses AFTER the full evaluate transition (spec
+        # 2026-08-16-loop-agent-harness): terminal verdicts returned
+        # above are already materialized; a continue verdict pauses
+        # right before the next iteration's researcher call — the
+        # boundary step(creator) needs. evaluate:N (the crash-test
+        # boundary BEFORE terminal effects) is intentionally unchanged.
+        if stop_after == f"iteration:{iteration}":
+            return paused(iteration)
     raise LoopError("loop ended without a verdict")  # pragma: no cover

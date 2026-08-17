@@ -1,0 +1,17 @@
+schema_version: concept-answer/v1
+value_prop: "Single-path value proposition"
+alternatives:
+  - direction: "Clear path"
+    summary: "The obvious choice"
+chosen_direction:
+  direction: "Clear path"
+  why: "No other viable alternatives"
+business_models:
+  - "Direct sales"
+assumptions:
+  - text: "Customers understand the value"
+    blocks_approval: false
+requests_to_researcher:
+  - "Confirm no alternatives exist"
+proposal_delta: "Confirmed single path strategy"
+single_path_justification: "Market research shows no viable alternatives"

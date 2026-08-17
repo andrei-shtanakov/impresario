@@ -898,3 +898,48 @@ def test_resume_blocks_on_unreadable_subject_lrd(loop_ws: Path) -> None:
         )
     state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
     assert state["stop"]["verdict"] == "needs_human"
+
+
+def test_stop_after_iteration_boundary(loop_ws: Path) -> None:
+    """iteration:N — пауза ПОСЛЕ evaluate: continue → paused перед
+    researcher N+1; терминальный вердикт возвращается материализованным."""
+    from impresario.agents import ScriptedAgent
+    from impresario.loop import run_loop
+
+    result = run_loop(
+        loop_ws,
+        CONTRACTS_DIR,
+        ScriptedAgent(HAPPY_SCRIPT),
+        now_iso=NOW,
+        stop_after="iteration:0",
+    )
+    assert result.verdict == "paused"
+    # continue-вердикт итерации 0 уже в trace, delta применена
+    events = [e["event"] for e in _trace_events(loop_ws)]
+    assert "verdict" in events and "delta_applied" in events
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"] is None  # не терминальная пауза
+
+    # терминальная итерация: iteration:1 у HAPPY возвращает READY
+    result = run_loop(
+        loop_ws,
+        CONTRACTS_DIR,
+        ScriptedAgent(HAPPY_SCRIPT),
+        now_iso=NOW,
+        stop_after="iteration:1",
+    )
+    assert result.verdict == "ready_for_business"
+    state = json.loads((loop_ws / "loop.state").read_text(encoding="utf-8"))
+    assert state["stop"]["verdict"] == "ready_for_business"  # материализован
+
+
+def test_single_answer_agent_contract() -> None:
+    from impresario.agents import AgentError, SingleAnswerAgent
+
+    doc = {"id": "RP-001"}
+    agent = SingleAnswerAgent("researcher", 0, doc)
+    assert agent.produce("researcher", 0) is doc
+    with pytest.raises(AgentError, match="researcher.*1"):
+        agent.produce("researcher", 1)
+    with pytest.raises(AgentError, match="creator"):
+        agent.produce("creator", 0)

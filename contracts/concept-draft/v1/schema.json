@@ -70,7 +70,16 @@
     },
     "proposal_delta": { "type": "string", "minLength": 1 },
     "produced_by": { "$ref": "#/$defs/actor" },
-    "produced_at": { "$ref": "#/$defs/timestamp" }
+    "produced_at": { "$ref": "#/$defs/timestamp" },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["brief_id", "prompt_pack_hash"],
+      "properties": {
+        "brief_id": { "type": "string", "pattern": "^SBR-[0-9a-f]{12}$" },
+        "prompt_pack_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    }
   },
   "$defs": {
     "timestamp": {

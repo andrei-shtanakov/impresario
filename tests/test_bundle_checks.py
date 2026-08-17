@@ -443,3 +443,142 @@ def test_assess_brief_duplicate_brief_id_order_independent(
     assert "ASSESS_BRIEF" in codes2, (
         "Expected ASSESS_BRIEF for duplicate brief_ids (order 2)"
     )
+
+
+def _stage_brief_doc() -> Doc:
+    from impresario.harness import sha256_bytes
+    from impresario.loop_harness import stage_brief_identity
+
+    prompt = "исследуй\n"
+    fields = {
+        "loop_id": "LOOP-001",
+        "iteration": 0,
+        "role": "researcher",
+        "prompt_version": "researcher/v1",
+        "prompt_pack_hash": "sha256:" + "b" * 64,
+        "idea_input_hash": "sha256:" + "a" * 64,
+        "proposal_hash": "sha256:" + "c" * 64,
+        "history_hash": "sha256:" + "d" * 64,
+        "prompt_hash": sha256_bytes(prompt.encode("utf-8")),
+    }
+    data = {
+        "schema_version": "stage-brief/v1",
+        "brief_id": stage_brief_identity(fields),
+        **fields,
+        "prompt": prompt,
+    }
+    return Doc(path=Path("sbr.yaml"), kind="stage-brief", data=data)
+
+
+def test_stage_brief_identity_clean_and_tampered(bundle: list[Doc]) -> None:
+    good = _stage_brief_doc()
+    assert "BRIEF_IDENTITY" not in _codes([*bundle, good])
+    t1 = Doc(
+        path=good.path,
+        kind=good.kind,
+        data=dict(good.data, prompt=good.data["prompt"] + "x"),
+    )
+    assert "BRIEF_IDENTITY" in _codes([*bundle, t1])
+    t2 = Doc(path=good.path, kind=good.kind, data=dict(good.data, role="creator"))
+    assert "BRIEF_IDENTITY" in _codes([*bundle, t2])
+
+
+def _rp_with_provenance(brief: Doc) -> Doc:
+    data = {
+        "id": "RP-900",
+        "idea_ref": "idea://IDEA-001",
+        "iteration": 0,
+        "findings": [],
+        "constraints": [],
+        "gaps": [],
+        "brief_for_creator": "b",
+        "requests_to_creator": [],
+        "produced_by": {
+            "kind": "agent",
+            "id": "claude",
+            "model": "m",
+            "prompt_version": brief.data["prompt_version"],
+        },
+        "produced_at": "2026-08-16T12:00:00Z",
+        "provenance": {
+            "brief_id": brief.data["brief_id"],
+            "prompt_pack_hash": brief.data["prompt_pack_hash"],
+        },
+    }
+    return Doc(path=Path("rp-900.yaml"), kind="research-pack", data=data)
+
+
+def test_artifact_brief_clean(bundle: list[Doc]) -> None:
+    brief = _stage_brief_doc()
+    docs = [*bundle, brief, _rp_with_provenance(brief)]
+    assert "ARTIFACT_BRIEF" not in _codes(docs)
+
+
+def test_artifact_brief_dangling_and_mismatches(bundle: list[Doc]) -> None:
+    brief = _stage_brief_doc()
+    rp = _rp_with_provenance(brief)
+    # висячий brief
+    assert "ARTIFACT_BRIEF" in _codes([*bundle, rp])
+    # расходящийся prompt_pack_hash
+    d = dict(rp.data)
+    d["provenance"] = dict(d["provenance"], prompt_pack_hash="sha256:" + "9" * 64)
+    assert "ARTIFACT_BRIEF" in _codes(
+        [*bundle, brief, Doc(path=rp.path, kind=rp.kind, data=d)]
+    )
+    # несовпадающая итерация артефакта с brief'ом
+    d2 = dict(rp.data, iteration=1)
+    assert "ARTIFACT_BRIEF" in _codes(
+        [*bundle, brief, Doc(path=rp.path, kind=rp.kind, data=d2)]
+    )
+    # артефакт без provenance пропускается
+    d3 = {k: v for k, v in rp.data.items() if k != "provenance"}
+    assert "ARTIFACT_BRIEF" not in _codes(
+        [*bundle, Doc(path=rp.path, kind=rp.kind, data=d3)]
+    )
+
+
+def test_artifact_brief_role_mismatch(bundle: list[Doc]) -> None:
+    """A research-pack must be produced against a researcher-role brief."""
+    brief = _stage_brief_doc()  # role: researcher
+    creator_brief_data = dict(brief.data, role="creator")
+    creator_brief = Doc(path=brief.path, kind=brief.kind, data=creator_brief_data)
+    rp = _rp_with_provenance(brief)  # points at brief's brief_id (unchanged)
+    assert "ARTIFACT_BRIEF" in _codes([*bundle, creator_brief, rp])
+
+
+def test_artifact_brief_loop_id_mismatch(bundle: list[Doc]) -> None:
+    """When a loop-state is present in the bundle, its loop_id must match."""
+    brief = _stage_brief_doc()  # loop_id: LOOP-001
+    rp = _rp_with_provenance(brief)
+    foreign_loop_state = _loop_state(loop_id="LOOP-999")
+    assert "ARTIFACT_BRIEF" in _codes([*bundle, brief, rp, foreign_loop_state])
+
+
+def test_artifact_brief_duplicate_brief_id_order_independent(
+    bundle: list[Doc],
+) -> None:
+    """Duplicate brief_id detection is order-independent (exact-one constraint).
+
+    Two stage-briefs with the same brief_id but different prompt_pack_hash
+    values in different orderings should both report ARTIFACT_BRIEF for the
+    matching artifact, not silently pick one (last-wins bug) — mirrors
+    test_assess_brief_duplicate_brief_id_order_independent above.
+    """
+    base = _stage_brief_doc()
+    brief1 = base
+    brief2_data = dict(base.data, prompt_pack_hash="sha256:" + "e" * 64)
+    brief2 = Doc(path=Path("sbr2.yaml"), kind=base.kind, data=brief2_data)
+
+    assert brief1.data["brief_id"] == brief2.data["brief_id"]
+
+    rp = _rp_with_provenance(brief1)
+
+    codes1 = _codes([*bundle, brief1, brief2, rp])
+    assert "ARTIFACT_BRIEF" in codes1, (
+        "Expected ARTIFACT_BRIEF for duplicate brief_ids (order 1)"
+    )
+
+    codes2 = _codes([*bundle, brief2, brief1, rp])
+    assert "ARTIFACT_BRIEF" in codes2, (
+        "Expected ARTIFACT_BRIEF for duplicate brief_ids (order 2)"
+    )

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:impresario:contract:stage-brief:v1",
+  "title": "StageBrief",
+  "description": "Handoff render → executor для одной стадии forconcept-цикла (docs/superpowers/specs/2026-08-16-loop-agent-harness-design.md). Immutable evidence: brief_id контент-адресован (канонический хеш identity-полей, включая prompt_hash); freshness покрывает все входы промпта (идея, proposal, история). Ни timestamp, ни случайных ID.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "brief_id",
+    "loop_id",
+    "iteration",
+    "role",
+    "prompt_version",
+    "prompt_pack_hash",
+    "idea_input_hash",
+    "proposal_hash",
+    "history_hash",
+    "prompt_hash",
+    "prompt"
+  ],
+  "properties": {
+    "schema_version": { "const": "stage-brief/v1" },
+    "brief_id": { "type": "string", "pattern": "^SBR-[0-9a-f]{12}$" },
+    "loop_id": { "type": "string", "pattern": "^LOOP-[0-9]{3,}$" },
+    "iteration": { "type": "integer", "minimum": 0 },
+    "role": { "enum": ["researcher", "creator"] },
+    "prompt_version": { "enum": ["researcher/v1", "creator/v1"] },
+    "prompt_pack_hash": { "$ref": "#/$defs/sha256" },
+    "idea_input_hash": { "$ref": "#/$defs/sha256" },
+    "proposal_hash": { "$ref": "#/$defs/sha256" },
+    "history_hash": { "$ref": "#/$defs/sha256" },
+    "prompt_hash": { "$ref": "#/$defs/sha256" },
+    "prompt": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}

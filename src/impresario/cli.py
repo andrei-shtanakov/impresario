@@ -138,7 +138,7 @@ def main(argv: list[str] | None = None) -> int:
         "--stop-after",
         default=None,
         help="pause boundary (start | research:N | concept:N | apply:N | "
-        "evaluate:N) — for crash/resume drills",
+        "evaluate:N | iteration:N) — for crash/resume drills",
     )
     fc_run.add_argument("--contracts", type=Path, default=None)
 
@@ -151,6 +151,26 @@ def main(argv: list[str] | None = None) -> int:
     fc_resume.add_argument("--actor", required=True)
     fc_resume.add_argument("--reason", required=True)
     fc_resume.add_argument("--contracts", type=Path, default=None)
+
+    fc_brief = fc_sub.add_parser(
+        "brief",
+        help="render the next stage-brief (researcher/creator) for a live LLM",
+    )
+    fc_brief.add_argument("workspace", type=Path)
+    fc_brief.add_argument("--prompts", type=Path, default=None)
+    fc_brief.add_argument("--contracts", type=Path, default=None)
+
+    fc_step = fc_sub.add_parser(
+        "step",
+        help="ingest an executor's answer to a stage-brief and run the loop",
+    )
+    fc_step.add_argument("workspace", type=Path)
+    fc_step.add_argument("--brief", type=Path, required=True)
+    fc_step.add_argument("--answer", type=Path, required=True)
+    fc_step.add_argument("--actor", required=True)
+    fc_step.add_argument("--model", required=True)
+    fc_step.add_argument("--prompts", type=Path, default=None)
+    fc_step.add_argument("--contracts", type=Path, default=None)
 
     gate = subparsers.add_parser(
         "gate", help="M4: typed QG-5 gates (readiness + immutable decisions)"
@@ -299,15 +319,37 @@ def _run_backlog(args) -> int:
 
 
 def _run_forconcept(args) -> int:
-    """Dispatch `impresario forconcept init|run` with a JSON report."""
+    """Dispatch `impresario forconcept init|run|resume|brief|step` with a
+    JSON report."""
     from datetime import UTC, datetime
 
     from .agents import AgentError, ScriptedAgent
+    from .harness import HarnessError, find_prompts_dir
     from .loop import FAILED, LoopError, init_loop, resume_loop, run_loop
+    from .loop_harness import render_stage_brief, step_loop
 
     now = datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
         contracts_dir = args.contracts or find_contracts_dir(Path.cwd())
+        if args.fc_command == "brief":
+            prompts = args.prompts or find_prompts_dir(Path.cwd())
+            report = render_stage_brief(args.workspace, contracts_dir, prompts)
+            print(json.dumps(report, ensure_ascii=False))
+            return 0
+        if args.fc_command == "step":
+            prompts = args.prompts or find_prompts_dir(Path.cwd())
+            report = step_loop(
+                args.workspace,
+                contracts_dir,
+                prompts,
+                brief_path=args.brief,
+                answer_path=args.answer,
+                actor=args.actor,
+                model=args.model,
+                now_iso=now,
+            )
+            print(json.dumps(report, ensure_ascii=False))
+            return 0 if report.get("ok") else 1
         if args.fc_command == "resume":
             decision_ref = resume_loop(
                 args.workspace,
@@ -348,7 +390,16 @@ def _run_forconcept(args) -> int:
             now_iso=now,
             stop_after=args.stop_after,
         )
-    except (LoopError, AgentError, FileNotFoundError) as exc:
+    except (
+        LoopError,
+        AgentError,
+        HarnessError,
+        FileNotFoundError,
+        OSError,
+        UnknownContractError,
+        yaml.YAMLError,
+        UnicodeDecodeError,
+    ) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
         return EXIT_USAGE
 

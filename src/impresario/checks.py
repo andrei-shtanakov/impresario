@@ -33,6 +33,11 @@ _KIND_TO_SCHEME = {
     # brief:// / answer:// are NOT resolvable ref schemes; known-set only.
     "evaluation-brief": "brief",
     "assessment-answer": "answer",
+    # sbrief:// / ranswer:// / canswer:// are NOT resolvable ref schemes;
+    # known-set only.
+    "stage-brief": "sbrief",
+    "research-answer": "ranswer",
+    "concept-answer": "canswer",
 }
 
 _ID_FIELDS = (
@@ -579,12 +584,24 @@ def check_loop_resume_decisions(docs: list[Doc]) -> list[Finding]:
 def check_briefs(docs: list[Doc]) -> list[Finding]:
     """BRIEF_IDENTITY: prompt_hash matches the prompt bytes, and
     brief_id matches the recompute over the identity fields (incl.
-    prompt_hash) — both layers, per the spec review 2026-08-16."""
+    prompt_hash) — both layers, per the spec review 2026-08-16.
+
+    Covers both brief kinds — evaluation-brief (prioritizer) and
+    stage-brief (forconcept loop) — each with its own identity-field
+    tuple and recompute function, but the same two-layer logic.
+    """
     from .harness import brief_identity, sha256_bytes
+    from .loop_harness import stage_brief_identity
+
+    identity_fns = {
+        "evaluation-brief": brief_identity,
+        "stage-brief": stage_brief_identity,
+    }
 
     findings: list[Finding] = []
     for doc in docs:
-        if doc.kind != "evaluation-brief":
+        identity_fn = identity_fns.get(doc.kind)
+        if identity_fn is None:
             continue
         data = doc.data
         prompt = data.get("prompt")
@@ -596,18 +613,18 @@ def check_briefs(docs: list[Doc]) -> list[Finding]:
                 Finding(
                     code="BRIEF_IDENTITY",
                     path=str(doc.path),
-                    message="prompt_hash does not match the prompt bytes",
+                    message=f"{doc.kind}: prompt_hash does not match the prompt bytes",
                 )
             )
             continue
         try:
-            expected = brief_identity(data)
+            expected = identity_fn(data)
         except KeyError as exc:
             findings.append(
                 Finding(
                     code="BRIEF_IDENTITY",
                     path=str(doc.path),
-                    message=f"missing identity field {exc}",
+                    message=f"{doc.kind}: missing identity field {exc}",
                 )
             )
             continue
@@ -617,7 +634,8 @@ def check_briefs(docs: list[Doc]) -> list[Finding]:
                     code="BRIEF_IDENTITY",
                     path=str(doc.path),
                     message=(
-                        f"brief_id {data.get('brief_id')} != recomputed {expected}"
+                        f"{doc.kind}: brief_id {data.get('brief_id')} != "
+                        f"recomputed {expected}"
                     ),
                 )
             )
@@ -676,6 +694,76 @@ def check_assessment_provenance(docs: list[Doc]) -> list[Finding]:
     return findings
 
 
+def check_artifact_provenance(docs: list[Doc]) -> list[Finding]:
+    """ARTIFACT_BRIEF: the research-pack/concept-draft -> stage-brief
+    chain holds in the bundle (analogous to check_assessment_provenance
+    for evaluation-brief, but for the forconcept loop harness).
+
+    Artifacts without `provenance` are skipped (pre-harness/manual
+    artifacts, e.g. pilot history). Duplicate brief_ids are an
+    ambiguity finding (exact-one constraint), same as ASSESS_BRIEF.
+    """
+    findings: list[Finding] = []
+    briefs_by_id: dict[str, list[Doc]] = {}
+    for d in docs:
+        if d.kind == "stage-brief":
+            brief_id = d.data.get("brief_id")
+            if brief_id is not None:
+                briefs_by_id.setdefault(brief_id, []).append(d)
+
+    loop_states = [d for d in docs if d.kind == "loop-state"]
+    expected_role = {"research-pack": "researcher", "concept-draft": "creator"}
+
+    for doc in docs:
+        if doc.kind not in expected_role:
+            continue
+        provenance = doc.data.get("provenance")
+        if not isinstance(provenance, dict):
+            continue
+
+        def err(message: str, *, _path: str = str(doc.path)) -> None:
+            findings.append(Finding(code="ARTIFACT_BRIEF", path=_path, message=message))
+
+        brief_id = provenance.get("brief_id")
+        if not isinstance(brief_id, str):
+            err(f"provenance.brief_id {brief_id} is not a string")
+            continue
+        brief_list = briefs_by_id.get(brief_id, [])
+
+        if len(brief_list) != 1:
+            err(
+                f"provenance.brief_id {brief_id} matches {len(brief_list)} "
+                "stage-brief(s) in bundle (expected exactly 1)"
+            )
+            continue
+
+        brief = brief_list[0]
+        if provenance.get("prompt_pack_hash") != brief.data.get("prompt_pack_hash"):
+            err("provenance.prompt_pack_hash != brief prompt_pack_hash")
+
+        produced_by = doc.data.get("produced_by") or {}
+        if produced_by.get("prompt_version") != brief.data.get("prompt_version"):
+            err("produced_by.prompt_version != brief prompt_version")
+
+        if doc.data.get("iteration") != brief.data.get("iteration"):
+            err("artifact iteration != brief iteration")
+
+        if brief.data.get("role") != expected_role[doc.kind]:
+            err(
+                f"artifact kind {doc.kind} requires brief role "
+                f"{expected_role[doc.kind]}, got {brief.data.get('role')}"
+            )
+
+        if len(loop_states) == 1:
+            loop_state_id = loop_states[0].data.get("loop_id")
+            if brief.data.get("loop_id") != loop_state_id:
+                err(
+                    f"brief loop_id {brief.data.get('loop_id')} != "
+                    f"loop-state loop_id {loop_state_id}"
+                )
+    return findings
+
+
 def run_bundle_checks(docs: list[Doc]) -> list[Finding]:
     """Run all cross-artifact checks over a bundle."""
     findings: list[Finding] = []
@@ -688,4 +776,5 @@ def run_bundle_checks(docs: list[Doc]) -> list[Finding]:
     findings.extend(check_loop_resume_decisions(docs))
     findings.extend(check_briefs(docs))
     findings.extend(check_assessment_provenance(docs))
+    findings.extend(check_artifact_provenance(docs))
     return findings
