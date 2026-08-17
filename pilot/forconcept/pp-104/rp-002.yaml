@@ -1,0 +1,52 @@
+id: RP-002
+idea_ref: idea://IDEA-104
+proposal_ref: proposal://PP-104
+iteration: 1
+findings:
+- claim: 'Исходный запрос обзора (inbox dispatcher#129) сознательно включал только гейты уровня
+    proposal: таблица фазы 1 содержит ровно два состояния — Gate A (qg5_business) и Gate B
+    (qg5_committee), фаза 2 — needs_human. Ожидания QG-4 уровня backlog в запрос не входили
+    ни одной фазой: недоставленный остаток гипотезы IDEA-104 никогда не запрашивался.'
+  source_ref: 'dispatcher inbox issue #129 (slug product-proposal-gate-waiting, тело запроса)'
+  confidence: high
+- claim: 'Приёмка фаз 1–2 завершена чисто: #136 закрыт с итогом «PR #137 merged 2026-08-12»,
+    наблюдаемое условие готовности выполнено (needs_human из loop-state даёт ровно одну запись
+    с identity (LOOP-101, 2) и freshness из stop.at; терминальный вердикт — ноль записей);
+    замечаний владельца, требующих доработки, в закрывающем комментарии нет.'
+  source_ref: 'dispatcher inbox issue #136 (закрывающий комментарий)'
+  confidence: high
+- claim: 'Открытых запросов на QG-4/backlog-обзор в dispatcher нет: список open issues пуст
+    по этой теме, в roadmap/TODO и коде (product_proposals.py, docs/) упоминания qg4/backlog
+    отсутствуют.'
+  source_ref: 'dispatcher: gh issue list --state open; grep qg4/backlog по TODO.md, core,
+    docs'
+  confidence: medium
+constraints:
+- kind: internal
+  statement: 'Новая работа в dispatcher начинается только их штатным механизмом: inbox-запрос
+    → приёмка владельцем; impresario может подать предложение, но не может решить за владельца
+    ни ценность, ни очередность.'
+  source_ref: parent CLAUDE.md (границы полирепо, handoff через inbox)
+gaps:
+- what: 'Не подтверждено владельцем dispatcher, что ожидание QG-4 уровня backlog нужно в их
+    консоли: их TODO помечает все product_proposal-пункты закрытыми, нового запроса нет.'
+  blocks_approval: true
+  closed: true
+  answered_by: research-pack://RP-002
+brief_for_creator: 'Ответ на запрос: потребность в QG-4-обзоре не заявлена нигде и никогда
+  — исходный #129 сознательно ограничен гейтами proposal, приёмка фаз 1–2 чистая, открытых
+  запросов нет. Значит концепт не может опираться на предположение «владельцу это нужно»;
+  он может лишь ПРЕДЛОЖИТЬ фазу 3 штатным inbox-механизмом, где решение о ценности примет
+  владелец dispatcher. Переформулируй deliverable как handoff-предложение (формула ожидания
+  qg4_backlog из backlog.version + decisions/, fail-closed диагностики, read-only) и сними
+  tentative с выбора направления.'
+requests_to_creator: []
+produced_by:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: researcher/v1
+produced_at: '2026-08-17T02:46:44Z'
+provenance:
+  brief_id: SBR-a2d9fc7eb743
+  prompt_pack_hash: sha256:050d4bfbe16fb163fbeea8462dc3a038f5e779d0f62a28a5f7f52451eb1f6964

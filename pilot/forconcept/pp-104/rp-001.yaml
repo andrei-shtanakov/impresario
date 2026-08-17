@@ -1,0 +1,71 @@
+id: RP-001
+idea_ref: idea://IDEA-104
+proposal_ref: proposal://PP-104
+iteration: 0
+findings:
+- claim: 'Dispatcher уже доставил read-only gate_waiting read model для зеркала impresario:
+    фаза 1 (contract-backed состояния proposal-гейтов, PR #132/#133), фаза 2 (needs_human
+    из loop-state/v1, PR #137) и parity в TUI/VSCode/MCP (PR #138) — все пункты закрыты в
+    их TODO.'
+  source_ref: dispatcher/TODO.md:108,137,148 (пункты [x] product-proposal-*)
+  confidence: high
+- claim: 'Read model живёт в dispatcher/core/product_proposals.py: сканирует bundle-директории
+    зеркала, классифицирует каждую, отдаёт waits (proposal_id, gate_id, version) и needs_human
+    (loop_id, iteration) с диагностиками уровня отчёта (mirror-not-detected, mirror-anchors-missing)
+    вместо тихого «0 bundles» — fail-closed наблюдение.'
+  source_ref: dispatcher/dispatcher/core/product_proposals.py:625-655; core/read_api.py:109-132
+  confidence: high
+- claim: 'Открытый вопрос идеи «транспорт: файловый poll зеркала или push» де-факто решён:
+    dispatcher читает on-disk артефакты напрямую (проекты не обязаны быть запущены), никакого
+    push-канала нет.'
+  source_ref: 'dispatcher/README.md (вводный абзац: reads on-disk artifacts directly)'
+  confidence: high
+- claim: 'Ожидания уровня QG-4 (backlog select: RankedBacklog опубликован, select ещё не сделан)
+    в read model не представлены: в product_proposals.py нет упоминаний backlog/qg4 — сканируются
+    только proposal-bundles и loop-state. Это единственная часть гипотезы «все ожидающие гейты
+    (QG-4, Gate A/B) в одном месте», которая осталась недоставленной.'
+  source_ref: dispatcher/dispatcher/core/product_proposals.py (grep backlog/qg4 — нет вхождений)
+  confidence: medium
+- claim: 'Контрактная база для фазы 2 передана штатно: handoff inbox dispatcher#136 (вендорить
+    loop-state/v1 @ merge 51e3103) подан 2026-08-12; семантика needs_human специфицирована
+    на стороне impresario.'
+  source_ref: impresario/TODO.md:86-91; impresario/docs/semantics.md:212-264
+  confidence: high
+constraints:
+- kind: strategy
+  statement: 'Impresario — не оркестратор и не обзорная поверхность: observation-слой принадлежит
+    dispatcher, контракты потребляются вендорингом пиненых копий, без live-ссылок между репо.'
+  source_ref: impresario/CLAUDE.md (Scope boundary); parent CLAUDE.md (границы полирепо)
+- kind: internal
+  statement: Мутации dispatcher ограничены узким human-click-gated PR-only whitelist; любая
+    надстройка над гейтами обязана оставаться read-only — кнопок «решить гейт» из консоли
+    быть не может.
+  source_ref: dispatcher/README.md (Mutations are limited...)
+gaps:
+- what: 'Не подтверждено владельцем dispatcher, что ожидание QG-4 уровня backlog (опубликован
+    RankedBacklog версии N, select отсутствует) вообще нужно в их консоли: их TODO помечает
+    все product_proposal-пункты закрытыми, нового запроса нет.'
+  blocks_approval: true
+- what: 'Дизайн определения «ожидающего QG-4» не зафиксирован: нужен детерминизм (версия backlog
+    + отсутствие GateDecision select по этой версии) и freshness/dedup-семантика, аналогичная
+    waits/needs_human.'
+  blocks_approval: false
+brief_for_creator: 'Большая часть IDEA-104 уже реализована dispatcher''ом (waits по гейтам
+  proposal + needs_human + parity по поверхностям; транспорт — файловый poll зеркала). Единственный
+  недоставленный кусок гипотезы — ожидания QG-4 на уровне backlog. Концепт стоит сузить ровно
+  до этого: read-only представление «RankedBacklog vN опубликован, select не сделан» в существующем
+  gate_waiting read model, с тем же fail-closed стилем диагностик. Ценность остатка не подтверждена
+  владельцем dispatcher — это блокирующий пробел; сам концепт должен быть handoff-формой (у
+  impresario нет права править dispatcher).'
+requests_to_creator:
+- Явно определи в концепте машинную формулу «ожидающего QG-4» через существующие артефакты
+  impresario (backlog.yaml version + decisions/), не изобретая новых сигналов.
+produced_by:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: researcher/v1
+produced_at: '2026-08-17T02:44:08Z'
+provenance:
+  brief_id: SBR-af4b851b13d6
+  prompt_pack_hash: sha256:050d4bfbe16fb163fbeea8462dc3a038f5e779d0f62a28a5f7f52451eb1f6964

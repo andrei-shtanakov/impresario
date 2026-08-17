@@ -1,0 +1,30 @@
+proposal_id: PP-104
+idea_ref: idea://IDEA-104
+version: 5
+status: ready_for_business
+iteration: 1
+refs:
+  exchange_log: exchange-log://XL-104
+  latest_research_pack: research-pack://RP-002
+  latest_concept_draft: concept-draft://CD-002
+content:
+  delta_log:
+  - iteration: 0
+    concept_draft: CD-001
+    delta: 'Scope PP-104 сужен с «весь read-only обзор product-гейтов» до недоставленного
+      остатка: ожидания QG-4 уровня backlog в существующем gate_waiting read model dispatcher.
+      Форма поставки — handoff-спека для владельца dispatcher (impresario не правит чужой
+      код): машинная формула ожидания (backlog.version + decisions/, как в assumption выше),
+      fail-closed диагностики в стиле waits/needs_human, read-only без кнопок решения. Открытый
+      вопрос идеи о транспорте закрыт: файловый poll зеркала.'
+  - iteration: 1
+    concept_draft: CD-002
+    delta: 'Deliverable PP-104 финализирован: не правка dispatcher, а handoff-предложение
+      фазы 3 в их inbox (по образцу #129) — read-only ожидание qg4_backlog в существующем
+      gate_waiting read model. Состав предложения: машинная формула ожидания (backlog.version
+      + decisions/, как в assumption), dedup identity (backlog_id, version, idea_ref), freshness
+      от published_at backlog, fail-closed диагностики; решение о принятии — за владельцем
+      dispatcher. Блокирующее предположение итерации 0 закрыто RP-002: концепт больше не утверждает
+      потребность владельца, а выносит её на его решение штатным механизмом.'
+created_at: '2026-08-17T02:42:27Z'
+updated_at: '2026-08-17T02:47:27Z'

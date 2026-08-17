@@ -1,0 +1,146 @@
+schema_version: stage-brief/v1
+brief_id: SBR-a2d9fc7eb743
+loop_id: LOOP-104
+iteration: 1
+role: researcher
+prompt_version: researcher/v1
+prompt_pack_hash: sha256:050d4bfbe16fb163fbeea8462dc3a038f5e779d0f62a28a5f7f52451eb1f6964
+idea_input_hash: sha256:a24c4997fcb748cd619b71d97c8c2c65820b1e7c98b07bdc88bac3b4f208cef6
+proposal_hash: sha256:4436b623ec7beb5db966defa6c5cc0e1cbcfda0f70ae5a1760f892b7385adf37
+history_hash: sha256:2e641d76b7d4b1c43ffff5878cf00ae581188726fe33a6b7da7f6bbd6e210109
+prompt_hash: sha256:407bead197fbe820f12456dae0b70d9da4096806e8a72603342688434051474c
+prompt: "# Researcher — forconcept-цикл — researcher/v1\n\nТы — researcher двухагентного цикла\
+  \ product-governance. Твоя задача на\nэту итерацию: собрать research pack по идее с учётом\
+  \ текущего proposal\nи всей истории цикла ниже. Ответ материализует детерминированный\n\
+  инструмент; ты авторишь только контент.\n\n## Правила\n\n1. Findings: каждое утверждение\
+  \ с confidence high/medium/low обязано\n   иметь конкретный `source_ref`; без источника\
+  \ — только\n   `confidence: unknown`. Выдуманные и «примерные» ссылки запрещены;\n   лучше\
+  \ честный пробел, чем правдоподобная выдумка.\n2. Актуальность: прежде чем цитировать подтверждающее\
+  \ evidence,\n   проверь по материалам, нет ли более ПОЗДНЕЙ отменяющей записи;\n   отменённое\
+  \ позже решение — не evidence.\n3. Gaps: честно фиксируй пробелы; `blocks_approval: true`\
+  \ — только для\n   действительно блокирующих. Закрывать прежний gap можно только с\n   `closed:\
+  \ true` и `answered_by` — ссылкой на research pack, где лежит\n   ответ. Формат `answered_by`\
+  \ строго: `research-pack://RP-NNN`\n   (например, `research-pack://RP-002`), другие форматы\
+  \ отклоняются.\n4. Отработай запросы creator'а из истории (requests_to_researcher его\n\
+  \   последнего concept draft), если они есть.\n5. `brief_for_creator` — концентрированная\
+  \ выжимка для creator'а, не\n   пересказ всего пака.\n\n## Формат ответа\n\nВерни РОВНО\
+  \ один YAML-документ (без Markdown-ограждений):\n\nschema_version: research-answer/v1\n\
+  findings:\n  - claim: \"<...>\"\n    source_ref: \"<источник>\"\n    confidence: <high |\
+  \ medium | low | unknown>\nconstraints:\n  - kind: <regulatory | standard | strategy | internal\
+  \ | other>\n    statement: \"<...>\"\n    source_ref: \"<источник, опционально>\"\ngaps:\n\
+  \  - what: \"<...>\"\n    blocks_approval: <true | false>\n    # closed: <true при закрытии\
+  \ прежнего пробела>\n    # answered_by: \"research-pack://RP-NNN\"\nbrief_for_creator: \"\
+  <...>\"\nrequests_to_creator:\n  - \"<...>\"\n\nНе добавляй других полей: идентификаторы,\
+  \ ссылки на proposal, номера\nитераций и метки времени авторит инструмент, не ты.\n\n##\
+  \ Идея\n\nid: IDEA-104\ntitle: 'Dispatcher: read-only обзор ожидающих product-гейтов'\n\
+  date: '2026-08-12'\nsource:\n  kind: internal\n  ref: impresario/docs/semantics.md + guide\
+  \ §10 (product_proposal/gate_waiting observation)\npriority: medium\nbusiness_attractiveness:\
+  \ 3\nstatus: selected\ntype: enhancement\nhypothesis: Типизированное read-only событие product_proposal/gate_waiting\
+  \ в консоли dispatcher\n  покажет владельцу все ожидающие человеческого решения гейты (QG-4,\
+  \ Gate A/B) в одном месте,\n  не маскируя их под PR-review; выгода — время ожидания authority-решений\
+  \ видно и управляемо.\nessence: 'Отдельный entity_kind для product-гейтов в консоли: gate,\
+  \ authority, freshness,\n  dedup.'\nproblem: Ожидающие product-решения не видны ни в одной\
+  \ обзорной поверхности.\nopen_questions:\n- 'Транспорт событий: файловый poll зеркала impresario\
+  \ или push?'\n\n\n## Текущий proposal\n\nproposal_id: PP-104\nidea_ref: idea://IDEA-104\n\
+  version: 3\nstatus: in_iteration\niteration: 0\nrefs:\n  exchange_log: exchange-log://XL-104\n\
+  \  latest_research_pack: research-pack://RP-001\n  latest_concept_draft: concept-draft://CD-001\n\
+  content:\n  delta_log:\n  - iteration: 0\n    concept_draft: CD-001\n    delta: 'Scope PP-104\
+  \ сужен с «весь read-only обзор product-гейтов» до недоставленного\n      остатка: ожидания\
+  \ QG-4 уровня backlog в существующем gate_waiting read model dispatcher.\n      Форма поставки\
+  \ — handoff-спека для владельца dispatcher (impresario не правит чужой\n      код): машинная\
+  \ формула ожидания (backlog.version + decisions/, как в assumption выше),\n      fail-closed\
+  \ диагностики в стиле waits/needs_human, read-only без кнопок решения. Открытый\n      вопрос\
+  \ идеи о транспорте закрыт: файловый poll зеркала.'\ncreated_at: '2026-08-17T02:42:27Z'\n\
+  updated_at: '2026-08-17T02:45:08Z'\n\n\n## История цикла (research packs и concept drafts\
+  \ по порядку)\n\n### researcher — итерация 0 — RP-001\n\nid: RP-001\nidea_ref: idea://IDEA-104\n\
+  proposal_ref: proposal://PP-104\niteration: 0\nfindings:\n- claim: 'Dispatcher уже доставил\
+  \ read-only gate_waiting read model для зеркала impresario:\n    фаза 1 (contract-backed\
+  \ состояния proposal-гейтов, PR #132/#133), фаза 2 (needs_human\n    из loop-state/v1, PR\
+  \ #137) и parity в TUI/VSCode/MCP (PR #138) — все пункты закрыты в\n    их TODO.'\n  source_ref:\
+  \ dispatcher/TODO.md:108,137,148 (пункты [x] product-proposal-*)\n  confidence: high\n-\
+  \ claim: 'Read model живёт в dispatcher/core/product_proposals.py: сканирует bundle-директории\n\
+  \    зеркала, классифицирует каждую, отдаёт waits (proposal_id, gate_id, version) и needs_human\n\
+  \    (loop_id, iteration) с диагностиками уровня отчёта (mirror-not-detected, mirror-anchors-missing)\n\
+  \    вместо тихого «0 bundles» — fail-closed наблюдение.'\n  source_ref: dispatcher/dispatcher/core/product_proposals.py:625-655;\
+  \ core/read_api.py:109-132\n  confidence: high\n- claim: 'Открытый вопрос идеи «транспорт:\
+  \ файловый poll зеркала или push» де-факто решён:\n    dispatcher читает on-disk артефакты\
+  \ напрямую (проекты не обязаны быть запущены), никакого\n    push-канала нет.'\n  source_ref:\
+  \ 'dispatcher/README.md (вводный абзац: reads on-disk artifacts directly)'\n  confidence:\
+  \ high\n- claim: 'Ожидания уровня QG-4 (backlog select: RankedBacklog опубликован, select\
+  \ ещё не сделан)\n    в read model не представлены: в product_proposals.py нет упоминаний\
+  \ backlog/qg4 — сканируются\n    только proposal-bundles и loop-state. Это единственная\
+  \ часть гипотезы «все ожидающие гейты\n    (QG-4, Gate A/B) в одном месте», которая осталась\
+  \ недоставленной.'\n  source_ref: dispatcher/dispatcher/core/product_proposals.py (grep\
+  \ backlog/qg4 — нет вхождений)\n  confidence: medium\n- claim: 'Контрактная база для фазы\
+  \ 2 передана штатно: handoff inbox dispatcher#136 (вендорить\n    loop-state/v1 @ merge\
+  \ 51e3103) подан 2026-08-12; семантика needs_human специфицирована\n    на стороне impresario.'\n\
+  \  source_ref: impresario/TODO.md:86-91; impresario/docs/semantics.md:212-264\n  confidence:\
+  \ high\nconstraints:\n- kind: strategy\n  statement: 'Impresario — не оркестратор и не обзорная\
+  \ поверхность: observation-слой принадлежит\n    dispatcher, контракты потребляются вендорингом\
+  \ пиненых копий, без live-ссылок между репо.'\n  source_ref: impresario/CLAUDE.md (Scope\
+  \ boundary); parent CLAUDE.md (границы полирепо)\n- kind: internal\n  statement: Мутации\
+  \ dispatcher ограничены узким human-click-gated PR-only whitelist; любая\n    надстройка\
+  \ над гейтами обязана оставаться read-only — кнопок «решить гейт» из консоли\n    быть не\
+  \ может.\n  source_ref: dispatcher/README.md (Mutations are limited...)\ngaps:\n- what:\
+  \ 'Не подтверждено владельцем dispatcher, что ожидание QG-4 уровня backlog (опубликован\n\
+  \    RankedBacklog версии N, select отсутствует) вообще нужно в их консоли: их TODO помечает\n\
+  \    все product_proposal-пункты закрытыми, нового запроса нет.'\n  blocks_approval: true\n\
+  - what: 'Дизайн определения «ожидающего QG-4» не зафиксирован: нужен детерминизм (версия\
+  \ backlog\n    + отсутствие GateDecision select по этой версии) и freshness/dedup-семантика,\
+  \ аналогичная\n    waits/needs_human.'\n  blocks_approval: false\nbrief_for_creator: 'Большая\
+  \ часть IDEA-104 уже реализована dispatcher''ом (waits по гейтам\n  proposal + needs_human\
+  \ + parity по поверхностям; транспорт — файловый poll зеркала). Единственный\n  недоставленный\
+  \ кусок гипотезы — ожидания QG-4 на уровне backlog. Концепт стоит сузить ровно\n  до этого:\
+  \ read-only представление «RankedBacklog vN опубликован, select не сделан» в существующем\n\
+  \  gate_waiting read model, с тем же fail-closed стилем диагностик. Ценность остатка не\
+  \ подтверждена\n  владельцем dispatcher — это блокирующий пробел; сам концепт должен быть\
+  \ handoff-формой (у\n  impresario нет права править dispatcher).'\nrequests_to_creator:\n\
+  - Явно определи в концепте машинную формулу «ожидающего QG-4» через существующие артефакты\n\
+  \  impresario (backlog.yaml version + decisions/), не изобретая новых сигналов.\nproduced_by:\n\
+  \  kind: agent\n  id: claude\n  model: claude-fable-5\n  prompt_version: researcher/v1\n\
+  produced_at: '2026-08-17T02:44:08Z'\nprovenance:\n  brief_id: SBR-af4b851b13d6\n  prompt_pack_hash:\
+  \ sha256:050d4bfbe16fb163fbeea8462dc3a038f5e779d0f62a28a5f7f52451eb1f6964\n\n\n### creator\
+  \ — итерация 0 — CD-001\n\nid: CD-001\nidea_ref: idea://IDEA-104\nproposal_ref: proposal://PP-104\n\
+  iteration: 0\nvalue_prop: Владелец видит в консоли dispatcher последний невидимый класс\
+  \ ожиданий — «RankedBacklog\n  опубликован, QG-4 select не сделан» — рядом с уже доставленными\
+  \ waits по гейтам proposal\n  и needs_human; время ожидания каждого authority-решения становится\
+  \ наблюдаемым без чтения\n  файлов зеркала.\nalternatives:\n- direction: Расширение существующего\
+  \ gate_waiting read model dispatcher\n  summary: 'Добавить в collect_product_proposals (или\
+  \ соседний сканер зеркала) строку ожидания\n    qg4_backlog: сканируется backlog.yaml +\
+  \ decisions/, формула детерминирована, стиль диагностик\n    fail-closed тот же, parity\
+  \ по поверхностям наследуется. Со стороны impresario — только\n    handoff-спека, код правит\
+  \ владелец dispatcher.'\n- direction: Производный machine-view артефакт на стороне impresario\n\
+  \  summary: 'Impresario сам публикует в workspace вычисляемый read-only артефакт «ожидающие\n\
+  \    гейты», который dispatcher лишь отображает. Минус: дублирует вычислимое из первичных\
+  \ артефактов\n    состояние, добавляет новый сигнал (против запроса researcher) и тянет\
+  \ impresario в роль\n    обзорной поверхности — против scope boundary.'\n- direction: 'Не\
+  \ строить: остаток идеи закрыть как доставленный'\n  summary: Считать гипотезу выполненной\
+  \ фазами 1–2 dispatcher; QG-4-ожидание остаётся вне\n    консоли, владелец смотрит backlog\
+  \ руками. Честная опция, если владелец dispatcher не подтвердит\n    ценность остатка.\n\
+  chosen_direction:\n  direction: Расширение существующего gate_waiting read model dispatcher\n\
+  \  why: 'Единственный вариант, закрывающий недоставленную часть гипотезы без новых сигналов\n\
+  \    и без нарушения границ: формула считается из уже существующих артефактов зеркала, вся\n\
+  \    инфраструктура (poll, диагностики, parity) уже стоит. Выбор предварительный — ценность\n\
+  \    остатка должен подтвердить владелец dispatcher.'\n  tentative: true\nbusiness_models:\n\
+  - 'Внутренний продукт: сокращение времени простоя authority-решений в полирепо-экосистеме;\n\
+  \  ценность измерима как возраст самого старого непокрытого ожидания в консоли.'\nassumptions:\n\
+  - text: Владельцу dispatcher нужен обзор QG-4-ожиданий в консоли; их TODO помечает все product_proposal-пункты\n\
+  \    закрытыми, нового запроса нет.\n  blocks_approval: true\n- text: 'Формула «ожидающего\
+  \ QG-4» вычислима только из backlog.yaml и decisions/ зеркала:\n    ожидание существует,\
+  \ пока в backlog версии N есть entry со status new, не покрытая GateDecision\n    select\
+  \ с gate_id qg4_backlog и subject.version = N; смена версии backlog гасит ожидания\n   \
+  \ предыдущей версии.'\n  blocks_approval: false\n- text: Транспорт остаётся файловым poll\
+  \ зеркала — push-канал не требуется и не появится в\n    объёме этого концепта.\n  blocks_approval:\
+  \ false\n  answered_by: research-pack://RP-001\nrequests_to_researcher:\n- Проверить в репо\
+  \ dispatcher (inbox/issues, roadmap/FR-04, TODO) — есть ли уже сформулированный\n  запрос\
+  \ или план на обзор QG-4/backlog-ожиданий, и чем закончилась приёмка фаз 1–2 (замечания\n\
+  \  владельца, если были).\nproposal_delta: 'Scope PP-104 сужен с «весь read-only обзор product-гейтов»\
+  \ до недоставленного\n  остатка: ожидания QG-4 уровня backlog в существующем gate_waiting\
+  \ read model dispatcher.\n  Форма поставки — handoff-спека для владельца dispatcher (impresario\
+  \ не правит чужой код):\n  машинная формула ожидания (backlog.version + decisions/, как\
+  \ в assumption выше), fail-closed\n  диагностики в стиле waits/needs_human, read-only без\
+  \ кнопок решения. Открытый вопрос идеи\n  о транспорте закрыт: файловый poll зеркала.'\n\
+  produced_by:\n  kind: agent\n  id: claude\n  model: claude-fable-5\n  prompt_version: creator/v1\n\
+  produced_at: '2026-08-17T02:45:08Z'\nprovenance:\n  brief_id: SBR-229bc779b569\n  prompt_pack_hash:\
+  \ sha256:b0fd734537a20b2edccdf34dbd5cf8a87b9ac3f761e6554349f77824c1651f8a\nbased_on_research:\n\
+  \  ref: research-pack://RP-001\n  iteration: 0\n\n"

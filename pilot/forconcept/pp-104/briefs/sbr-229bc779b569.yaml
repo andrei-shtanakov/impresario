@@ -1,0 +1,93 @@
+schema_version: stage-brief/v1
+brief_id: SBR-229bc779b569
+loop_id: LOOP-104
+iteration: 0
+role: creator
+prompt_version: creator/v1
+prompt_pack_hash: sha256:b0fd734537a20b2edccdf34dbd5cf8a87b9ac3f761e6554349f77824c1651f8a
+idea_input_hash: sha256:a24c4997fcb748cd619b71d97c8c2c65820b1e7c98b07bdc88bac3b4f208cef6
+proposal_hash: sha256:db9f495e1715ca0971abc436e67b44c13380cbe91be2439d2feb69b8bcf200c7
+history_hash: sha256:13482043c36bf55267d93b8c258752e7eede6a6abe33cc98a1b0c29a8e56e4c2
+prompt_hash: sha256:5cec4d9e85653bbd9ac0816232bdd82340f768cad6b6fcd849dcba1aa6f68093
+prompt: "# Creator — forconcept-цикл — creator/v1\n\nТы — creator двухагентного цикла product-governance.\
+  \ Твоя задача на\nэту итерацию: собрать concept pack по идее с учётом текущего proposal,\n\
+  research findings из истории и её контекста. Ответ материализует\nдетерминированный инструмент;\
+  \ ты авторишь только контент.\n\n## Правила\n\n1. Alternatives: предложи ≥3 содержательных\
+  \ направлений, либо одно\n   направление с явным `single_path_justification`. Каждое направление\n\
+  \   должно быть осмысленной альтернативой, а не вариацией.\n2. Assumptions: честно зафиксируй\
+  \ предположения; `blocks_approval: true` —\n   только для действительно блокирующих. Закрывать\
+  \ предположение можно\n   только с `answered_by` — ссылкой на research pack, который реально\n\
+  \   отвечает на это предположение. Формат `answered_by` строго:\n   `research-pack://RP-NNN`\
+  \ (например, `research-pack://RP-002`), другие\n   форматы отклоняются.\n3. proposal_delta:\
+  \ концентрированное описание изменений proposal, не\n   пересказ всего содержимого; покажи\
+  \ только то, что меняется.\n4. Отработай `requests_to_creator` из свежего research pack,\
+  \ если они\n   есть.\n5. `value_prop` — одна-две фразы ценности для стейкхолдеров; делай\n\
+  \   конкретно, не абстрактно.\n\n## Формат ответа\n\nВерни РОВНО один YAML-документ (без\
+  \ Markdown-ограждений):\n\nschema_version: concept-answer/v1\nvalue_prop: \"<...>\"\nalternatives:\n\
+  \  - direction: \"<...>\"\n    summary: \"<...>\"\n  - direction: \"<...>\"\n    summary:\
+  \ \"<...>\"\nchosen_direction:\n  direction: \"<...>\"\n  why: \"<...>\"\n  tentative: <true\
+  \ | false (опционально)>\nbusiness_models:\n  - \"<...>\"\nassumptions:\n  - text: \"<...>\"\
+  \n    blocks_approval: <true | false>\n    answered_by: \"research-pack://RP-NNN (опционально)\"\
+  \nrequests_to_researcher:\n  - \"<...>\"\nproposal_delta: \"<...>\"\nsingle_path_justification:\
+  \ \"<опционально, если только одна альтернатива>\"\n\nНе добавляй других полей: идентификаторы,\
+  \ ссылки на idea, номера итераций\nи метки времени авторит инструмент, не ты.\n\n## Идея\n\
+  \nid: IDEA-104\ntitle: 'Dispatcher: read-only обзор ожидающих product-гейтов'\ndate: '2026-08-12'\n\
+  source:\n  kind: internal\n  ref: impresario/docs/semantics.md + guide §10 (product_proposal/gate_waiting\
+  \ observation)\npriority: medium\nbusiness_attractiveness: 3\nstatus: selected\ntype: enhancement\n\
+  hypothesis: Типизированное read-only событие product_proposal/gate_waiting в консоли dispatcher\n\
+  \  покажет владельцу все ожидающие человеческого решения гейты (QG-4, Gate A/B) в одном\
+  \ месте,\n  не маскируя их под PR-review; выгода — время ожидания authority-решений видно\
+  \ и управляемо.\nessence: 'Отдельный entity_kind для product-гейтов в консоли: gate, authority,\
+  \ freshness,\n  dedup.'\nproblem: Ожидающие product-решения не видны ни в одной обзорной\
+  \ поверхности.\nopen_questions:\n- 'Транспорт событий: файловый poll зеркала impresario\
+  \ или push?'\n\n\n## Текущий proposal\n\nproposal_id: PP-104\nidea_ref: idea://IDEA-104\n\
+  version: 2\nstatus: in_iteration\niteration: 0\nrefs:\n  exchange_log: exchange-log://XL-104\n\
+  content:\n  delta_log: []\ncreated_at: '2026-08-17T02:42:27Z'\nupdated_at: '2026-08-17T02:44:08Z'\n\
+  \n\n## История цикла (research packs и concept drafts по порядку)\n\n### researcher — итерация\
+  \ 0 — RP-001\n\nid: RP-001\nidea_ref: idea://IDEA-104\nproposal_ref: proposal://PP-104\n\
+  iteration: 0\nfindings:\n- claim: 'Dispatcher уже доставил read-only gate_waiting read model\
+  \ для зеркала impresario:\n    фаза 1 (contract-backed состояния proposal-гейтов, PR #132/#133),\
+  \ фаза 2 (needs_human\n    из loop-state/v1, PR #137) и parity в TUI/VSCode/MCP (PR #138)\
+  \ — все пункты закрыты в\n    их TODO.'\n  source_ref: dispatcher/TODO.md:108,137,148 (пункты\
+  \ [x] product-proposal-*)\n  confidence: high\n- claim: 'Read model живёт в dispatcher/core/product_proposals.py:\
+  \ сканирует bundle-директории\n    зеркала, классифицирует каждую, отдаёт waits (proposal_id,\
+  \ gate_id, version) и needs_human\n    (loop_id, iteration) с диагностиками уровня отчёта\
+  \ (mirror-not-detected, mirror-anchors-missing)\n    вместо тихого «0 bundles» — fail-closed\
+  \ наблюдение.'\n  source_ref: dispatcher/dispatcher/core/product_proposals.py:625-655; core/read_api.py:109-132\n\
+  \  confidence: high\n- claim: 'Открытый вопрос идеи «транспорт: файловый poll зеркала или\
+  \ push» де-факто решён:\n    dispatcher читает on-disk артефакты напрямую (проекты не обязаны\
+  \ быть запущены), никакого\n    push-канала нет.'\n  source_ref: 'dispatcher/README.md (вводный\
+  \ абзац: reads on-disk artifacts directly)'\n  confidence: high\n- claim: 'Ожидания уровня\
+  \ QG-4 (backlog select: RankedBacklog опубликован, select ещё не сделан)\n    в read model\
+  \ не представлены: в product_proposals.py нет упоминаний backlog/qg4 — сканируются\n   \
+  \ только proposal-bundles и loop-state. Это единственная часть гипотезы «все ожидающие гейты\n\
+  \    (QG-4, Gate A/B) в одном месте», которая осталась недоставленной.'\n  source_ref: dispatcher/dispatcher/core/product_proposals.py\
+  \ (grep backlog/qg4 — нет вхождений)\n  confidence: medium\n- claim: 'Контрактная база для\
+  \ фазы 2 передана штатно: handoff inbox dispatcher#136 (вендорить\n    loop-state/v1 @ merge\
+  \ 51e3103) подан 2026-08-12; семантика needs_human специфицирована\n    на стороне impresario.'\n\
+  \  source_ref: impresario/TODO.md:86-91; impresario/docs/semantics.md:212-264\n  confidence:\
+  \ high\nconstraints:\n- kind: strategy\n  statement: 'Impresario — не оркестратор и не обзорная\
+  \ поверхность: observation-слой принадлежит\n    dispatcher, контракты потребляются вендорингом\
+  \ пиненых копий, без live-ссылок между репо.'\n  source_ref: impresario/CLAUDE.md (Scope\
+  \ boundary); parent CLAUDE.md (границы полирепо)\n- kind: internal\n  statement: Мутации\
+  \ dispatcher ограничены узким human-click-gated PR-only whitelist; любая\n    надстройка\
+  \ над гейтами обязана оставаться read-only — кнопок «решить гейт» из консоли\n    быть не\
+  \ может.\n  source_ref: dispatcher/README.md (Mutations are limited...)\ngaps:\n- what:\
+  \ 'Не подтверждено владельцем dispatcher, что ожидание QG-4 уровня backlog (опубликован\n\
+  \    RankedBacklog версии N, select отсутствует) вообще нужно в их консоли: их TODO помечает\n\
+  \    все product_proposal-пункты закрытыми, нового запроса нет.'\n  blocks_approval: true\n\
+  - what: 'Дизайн определения «ожидающего QG-4» не зафиксирован: нужен детерминизм (версия\
+  \ backlog\n    + отсутствие GateDecision select по этой версии) и freshness/dedup-семантика,\
+  \ аналогичная\n    waits/needs_human.'\n  blocks_approval: false\nbrief_for_creator: 'Большая\
+  \ часть IDEA-104 уже реализована dispatcher''ом (waits по гейтам\n  proposal + needs_human\
+  \ + parity по поверхностям; транспорт — файловый poll зеркала). Единственный\n  недоставленный\
+  \ кусок гипотезы — ожидания QG-4 на уровне backlog. Концепт стоит сузить ровно\n  до этого:\
+  \ read-only представление «RankedBacklog vN опубликован, select не сделан» в существующем\n\
+  \  gate_waiting read model, с тем же fail-closed стилем диагностик. Ценность остатка не\
+  \ подтверждена\n  владельцем dispatcher — это блокирующий пробел; сам концепт должен быть\
+  \ handoff-формой (у\n  impresario нет права править dispatcher).'\nrequests_to_creator:\n\
+  - Явно определи в концепте машинную формулу «ожидающего QG-4» через существующие артефакты\n\
+  \  impresario (backlog.yaml version + decisions/), не изобретая новых сигналов.\nproduced_by:\n\
+  \  kind: agent\n  id: claude\n  model: claude-fable-5\n  prompt_version: researcher/v1\n\
+  produced_at: '2026-08-17T02:44:08Z'\nprovenance:\n  brief_id: SBR-af4b851b13d6\n  prompt_pack_hash:\
+  \ sha256:050d4bfbe16fb163fbeea8462dc3a038f5e779d0f62a28a5f7f52451eb1f6964\n\n"

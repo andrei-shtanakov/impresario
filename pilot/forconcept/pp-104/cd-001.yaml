@@ -1,0 +1,68 @@
+id: CD-001
+idea_ref: idea://IDEA-104
+proposal_ref: proposal://PP-104
+iteration: 0
+value_prop: Владелец видит в консоли dispatcher последний невидимый класс ожиданий — «RankedBacklog
+  опубликован, QG-4 select не сделан» — рядом с уже доставленными waits по гейтам proposal
+  и needs_human; время ожидания каждого authority-решения становится наблюдаемым без чтения
+  файлов зеркала.
+alternatives:
+- direction: Расширение существующего gate_waiting read model dispatcher
+  summary: 'Добавить в collect_product_proposals (или соседний сканер зеркала) строку ожидания
+    qg4_backlog: сканируется backlog.yaml + decisions/, формула детерминирована, стиль диагностик
+    fail-closed тот же, parity по поверхностям наследуется. Со стороны impresario — только
+    handoff-спека, код правит владелец dispatcher.'
+- direction: Производный machine-view артефакт на стороне impresario
+  summary: 'Impresario сам публикует в workspace вычисляемый read-only артефакт «ожидающие
+    гейты», который dispatcher лишь отображает. Минус: дублирует вычислимое из первичных артефактов
+    состояние, добавляет новый сигнал (против запроса researcher) и тянет impresario в роль
+    обзорной поверхности — против scope boundary.'
+- direction: 'Не строить: остаток идеи закрыть как доставленный'
+  summary: Считать гипотезу выполненной фазами 1–2 dispatcher; QG-4-ожидание остаётся вне
+    консоли, владелец смотрит backlog руками. Честная опция, если владелец dispatcher не подтвердит
+    ценность остатка.
+chosen_direction:
+  direction: Расширение существующего gate_waiting read model dispatcher
+  why: 'Единственный вариант, закрывающий недоставленную часть гипотезы без новых сигналов
+    и без нарушения границ: формула считается из уже существующих артефактов зеркала, вся
+    инфраструктура (poll, диагностики, parity) уже стоит. Выбор предварительный — ценность
+    остатка должен подтвердить владелец dispatcher.'
+  tentative: true
+business_models:
+- 'Внутренний продукт: сокращение времени простоя authority-решений в полирепо-экосистеме;
+  ценность измерима как возраст самого старого непокрытого ожидания в консоли.'
+assumptions:
+- text: Владельцу dispatcher нужен обзор QG-4-ожиданий в консоли; их TODO помечает все product_proposal-пункты
+    закрытыми, нового запроса нет.
+  blocks_approval: true
+- text: 'Формула «ожидающего QG-4» вычислима только из backlog.yaml и decisions/ зеркала:
+    ожидание существует, пока в backlog версии N есть entry со status new, не покрытая GateDecision
+    select с gate_id qg4_backlog и subject.version = N; смена версии backlog гасит ожидания
+    предыдущей версии.'
+  blocks_approval: false
+- text: Транспорт остаётся файловым poll зеркала — push-канал не требуется и не появится в
+    объёме этого концепта.
+  blocks_approval: false
+  answered_by: research-pack://RP-001
+requests_to_researcher:
+- Проверить в репо dispatcher (inbox/issues, roadmap/FR-04, TODO) — есть ли уже сформулированный
+  запрос или план на обзор QG-4/backlog-ожиданий, и чем закончилась приёмка фаз 1–2 (замечания
+  владельца, если были).
+proposal_delta: 'Scope PP-104 сужен с «весь read-only обзор product-гейтов» до недоставленного
+  остатка: ожидания QG-4 уровня backlog в существующем gate_waiting read model dispatcher.
+  Форма поставки — handoff-спека для владельца dispatcher (impresario не правит чужой код):
+  машинная формула ожидания (backlog.version + decisions/, как в assumption выше), fail-closed
+  диагностики в стиле waits/needs_human, read-only без кнопок решения. Открытый вопрос идеи
+  о транспорте закрыт: файловый poll зеркала.'
+produced_by:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: creator/v1
+produced_at: '2026-08-17T02:45:08Z'
+provenance:
+  brief_id: SBR-229bc779b569
+  prompt_pack_hash: sha256:b0fd734537a20b2edccdf34dbd5cf8a87b9ac3f761e6554349f77824c1651f8a
+based_on_research:
+  ref: research-pack://RP-001
+  iteration: 0
