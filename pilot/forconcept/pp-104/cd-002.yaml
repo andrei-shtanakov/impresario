@@ -1,0 +1,63 @@
+id: CD-002
+idea_ref: idea://IDEA-104
+proposal_ref: proposal://PP-104
+iteration: 1
+value_prop: Владелец dispatcher получает готовое к приёмке предложение фазы 3 — закрыть последний
+  невидимый класс ожиданий (QG-4 select на уровне backlog) в уже стоящем gate_waiting read
+  model; решение о ценности и очередности остаётся за ним, штатным inbox-механизмом.
+alternatives:
+- direction: Handoff-предложение фазы 3 в inbox dispatcher
+  summary: 'Impresario подаёт inbox-запрос по образцу #129: формула ожидания qg4_backlog из
+    backlog.version + decisions/, fail-closed диагностики в стиле waits/needs_human, read-only.
+    Владелец dispatcher принимает или отклоняет — концепт не зависит от неподтверждённой потребности.'
+- direction: Производный machine-view артефакт на стороне impresario
+  summary: 'Отклонено в итерации 0: дублирует вычислимое состояние, добавляет новый сигнал
+    и нарушает scope boundary impresario.'
+- direction: Не строить и не предлагать
+  summary: 'Считать гипотезу IDEA-104 выполненной фазами 1–2. Отклонено как целевой вариант:
+    остаток гипотезы (QG-4) вычислим из существующих артефактов и дёшев в предложении; молчание
+    оставляет решение непринятым, а не принятым отрицательно.'
+chosen_direction:
+  direction: Handoff-предложение фазы 3 в inbox dispatcher
+  why: 'RP-002 показал: потребность не заявлена, но и не отклонена — QG-4 сознательно не входил
+    в исходный запрос #129. Единственная форма, в которой impresario может законно продвинуть
+    остаток гипотезы, — предложение через штатный inbox с решением на стороне владельца. Концепт
+    при этом полон независимо от исхода приёмки: принятие даёт фазу 3, отклонение — зафиксированное
+    authority-решение о границе обзора.'
+business_models:
+- 'Внутренний продукт: полнота обзора authority-ожиданий в консоли; ценность измерима как
+  возраст самого старого непокрытого ожидания и подтверждается (или отклоняется) владельцем
+  dispatcher при приёмке.'
+assumptions:
+- text: Владельцу dispatcher нужен обзор QG-4-ожиданий в консоли; их TODO помечает все product_proposal-пункты
+    закрытыми, нового запроса нет.
+  blocks_approval: true
+  answered_by: research-pack://RP-002
+- text: 'Формула «ожидающего QG-4» вычислима только из backlog.yaml и decisions/ зеркала:
+    ожидание существует, пока в backlog версии N есть entry со status new, не покрытая GateDecision
+    select с gate_id qg4_backlog и subject.version = N; смена версии backlog гасит ожидания
+    предыдущей версии.'
+  blocks_approval: false
+- text: Транспорт остаётся файловым poll зеркала — push-канал не требуется.
+  blocks_approval: false
+  answered_by: research-pack://RP-001
+requests_to_researcher: []
+proposal_delta: 'Deliverable PP-104 финализирован: не правка dispatcher, а handoff-предложение
+  фазы 3 в их inbox (по образцу #129) — read-only ожидание qg4_backlog в существующем gate_waiting
+  read model. Состав предложения: машинная формула ожидания (backlog.version + decisions/,
+  как в assumption), dedup identity (backlog_id, version, idea_ref), freshness от published_at
+  backlog, fail-closed диагностики; решение о принятии — за владельцем dispatcher. Блокирующее
+  предположение итерации 0 закрыто RP-002: концепт больше не утверждает потребность владельца,
+  а выносит её на его решение штатным механизмом.'
+produced_by:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: creator/v1
+produced_at: '2026-08-17T02:47:27Z'
+provenance:
+  brief_id: SBR-9a5adb058d84
+  prompt_pack_hash: sha256:b0fd734537a20b2edccdf34dbd5cf8a87b9ac3f761e6554349f77824c1651f8a
+based_on_research:
+  ref: research-pack://RP-002
+  iteration: 1
