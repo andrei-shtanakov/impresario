@@ -6,7 +6,7 @@ source:
   ref: "prograph-vault/authored/notes/ecosystem-roadmap.md §1.5 (owned model layer, de-urgentized)"
 priority: low
 business_attractiveness: 4
-status: new
+status: selected
 type: new_product
 hypothesis: >-
   Слой provider-независимого роутинга моделей в arbiter (каталог +
