@@ -1,0 +1,23 @@
+decision_id: GD-001
+gate_id: qg5_business
+subject:
+  kind: product_proposal
+  ref: proposal://PP-103
+  version: 5
+decision: approve
+decided_by:
+  kind: human
+  id: andrei
+  role: business_owner
+decided_at: '2026-08-17T12:36:51Z'
+reason: 'Концепт честный и дешёвый: не новый продукт, а последняя миля ADR-ECO-003b при уже
+  оплаченной базе (загрузчики шипнуты у всех трёх участников, retire-семантика в валидации
+  каталога, rerank доказан crossover-гейтом). Acceptance измерим: (a) arbiter-mcp валидирует
+  agents.toml против user-config каталога, (b) conformance трёх загрузчиков под одним owner-путём,
+  (c) swap-смоук retire+promote через $ATP_CATALOG без правок у потребителей. Де-приоритизация
+  §1.5 отработана явно (дёшево, не срочно), альтернативы отклонены с причинами; блокирующих
+  предположений и пробелов нет (закрыты RP-001/RP-002)'
+artifacts_reviewed:
+- proposal://PP-103
+- research-pack://RP-002
+- concept-draft://CD-002
