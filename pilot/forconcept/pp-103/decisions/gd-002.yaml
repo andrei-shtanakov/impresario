@@ -1,0 +1,21 @@
+decision_id: GD-002
+gate_id: qg5_committee
+subject:
+  kind: product_proposal
+  ref: proposal://PP-103
+  version: 6
+decision: approve
+decided_by:
+  kind: human
+  id: andrei
+  role: committee_chair
+decided_at: '2026-08-17T12:41:38Z'
+reason: 'Committee approve вслед за Gate A: скоуп «последняя миля ADR-ECO-003b» согласован
+  с портфелем — приоритизирует уже заведённые пункты владельцев (arbiter-mcp-catalog-loader;
+  conformance devtools/Maestro), не создаёт новых обязательств; границы соблюдены (D5: discovery
+  не в arbiter; полирепо: реализация у владельцев через handoff). Acceptance наблюдаем и проверяем
+  по evidence; риск низкий, стоимость малая, отклонение полного сервиса согласуется с §1.5'
+artifacts_reviewed:
+- proposal://PP-103
+- research-pack://RP-002
+- concept-draft://CD-002
