@@ -1,0 +1,19 @@
+decision_id: GD-001
+gate_id: qg5_business
+subject:
+  kind: product_proposal
+  ref: proposal://PP-104
+  version: 5
+decision: approve
+decided_by:
+  kind: human
+  id: andrei
+  role: business_owner
+decided_at: '2026-08-17T03:00:13Z'
+reason: 'Концепт честный и дешёвый: остаток IDEA-104 оформлен как handoff-предложение фазы
+  3 в inbox dispatcher (формула qg4_backlog из backlog.version + decisions/), решение о ценности
+  остаётся за владельцем dispatcher; блокирующих предположений и пробелов нет (закрыты RP-002)'
+artifacts_reviewed:
+- proposal://PP-104
+- research-pack://RP-002
+- concept-draft://CD-002

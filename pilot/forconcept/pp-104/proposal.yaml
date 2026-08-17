@@ -1,7 +1,7 @@
 proposal_id: PP-104
 idea_ref: idea://IDEA-104
-version: 5
-status: ready_for_business
+version: 6
+status: business_approved
 iteration: 1
 refs:
   exchange_log: exchange-log://XL-104
@@ -27,4 +27,4 @@ content:
       dispatcher. Блокирующее предположение итерации 0 закрыто RP-002: концепт больше не утверждает
       потребность владельца, а выносит её на его решение штатным механизмом.'
 created_at: '2026-08-17T02:42:27Z'
-updated_at: '2026-08-17T02:47:27Z'
+updated_at: '2026-08-17T03:00:13Z'
