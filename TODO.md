@@ -104,6 +104,22 @@
   **Влит 2026-08-12** (PR #12, merge `51e3103`, ревью Copilot отработано);
   follow-up выполнен: handoff dispatcher#136 подан
 
+## PP-103 — третий полный прогон конвейера (IDEA-103)
+
+- [x] **PP-103 approved 2026-08-17** — полный evidence-след за один день:
+  QG-4 select IDEA-103 (GD-003, backlog v5; PR #28) → живой
+  researcher/creator-цикл, 2 итерации → ready_for_business (PR #29) →
+  Gate A (GD-001, business_owner; PR #30) → Gate B (GD-002,
+  committee_chair; PR #31) → **approved v7**. Концепт: «последняя миля
+  ADR-ECO-003b» (полный model-layer сервис отклонён по §1.5 и D5; hold
+  отклонён). Бандл `pilot/forconcept/pp-103/`, 14 артефактов, валиден
+- [ ] arbiter: mcp-валидация agents.toml против user-config каталога +
+  provider-swap смоук (acceptance (a)+(c) PP-103) — inbox подан
+  2026-08-17, решение за владельцем @blocked_by:arbiter#72
+- [ ] devtools: conformance трёх загрузчиков каталога под одним
+  owner-путём, SSOT-фикстуры пином (acceptance (b) PP-103) — inbox подан
+  2026-08-17, решение за владельцем @blocked_by:devtools#43
+
 ## M3 — Kapelle battle-test
 
 - [x] **Kapelle как execution backend цикла — ЗАКРЫТ 2026-08-16**:
