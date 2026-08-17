@@ -1,0 +1,19 @@
+decision_id: GD-003
+gate_id: qg4_backlog
+subject:
+  kind: ranked_backlog
+  ref: backlog://BL-ecosystem
+  version: 4
+decision: select
+selected_idea_ref: idea://IDEA-103
+decided_by:
+  kind: human
+  id: andrei
+  role: qg4_selector
+decided_at: '2026-08-17T11:35:03Z'
+reason: 'QG-4: выбрана IDEA-103 (rank 3, score 4.33, верхняя невыбранная позиция backlog v4).
+  Дословное соответствие G-2 (arbiter — дом routing); выбрана перед равной по score IDEA-106:
+  103 задаёт слой-потребитель, 106 (данные для routing) логично идёт следом. Де-приоритизация
+  в источнике (§1.5) осознана и не блокирует.'
+artifacts_reviewed:
+- backlog://BL-ecosystem
