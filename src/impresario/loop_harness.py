@@ -400,8 +400,11 @@ def _step_loop_locked(
             k: v for k, v in candidate.items() if k not in ("id", "produced_at")
         }
         if existing_cmp == candidate_cmp:
+            # ok отражает текущий вердикт цикла: артефакт мог быть записан,
+            # а раннер после этого лечь терминальным failed (_apply_delta).
+            stop = _read_state(workspace, contracts_dir).get("stop") or {}
             return {
-                "ok": True,
+                "ok": stop.get("verdict") != FAILED,
                 "noop": True,
                 "artifact": {
                     "id": consumed.data["id"],

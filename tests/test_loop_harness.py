@@ -294,6 +294,38 @@ def test_step_idempotent_retry_before_freshness(loop_ws: Path, tmp_path: Path) -
         _step(loop_ws, Path(r1["path"]), ans2)
 
 
+def test_step_idempotent_retry_reflects_failed_verdict(
+    loop_ws: Path,  # noqa: F811 - pytest fixture reuse
+    tmp_path: Path,
+) -> None:
+    """Ретрай потреблённого brief при терминальном failed — noop, но ok: false.
+
+    Сценарий: артефакт записан, а раннер после этого лёг терминальным failed
+    (класс _apply_delta). Ретрай не должен маскировать провал под exit 0.
+    """
+    from impresario.loop import state_path
+    from impresario.loop_harness import render_stage_brief
+
+    r1 = render_stage_brief(loop_ws, CONTRACTS_DIR, PROMPTS_DIR)
+    ans = _write_yaml(tmp_path / "ra.yaml", RA_CONTENT_IT0)
+    first = _step(loop_ws, Path(r1["path"]), ans)
+    assert first["ok"] is True
+
+    sp = state_path(loop_ws)
+    state = json.loads(sp.read_text(encoding="utf-8"))
+    state["stop"] = {
+        "verdict": "failed",
+        "reason": "proposal invalid after delta",
+        "iteration": 0,
+        "at": NOW,
+    }
+    sp.write_text(json.dumps(state), encoding="utf-8")
+
+    retry = _step(loop_ws, Path(r1["path"]), ans, now_iso="2026-08-16T20:00:00Z")
+    assert retry["noop"] is True
+    assert retry["ok"] is False
+
+
 def test_step_stale_brief_and_mispairing(loop_ws: Path, tmp_path: Path) -> None:  # noqa: F811 - pytest fixture reuse
     from impresario.harness import HarnessError
     from impresario.loop_harness import render_stage_brief
