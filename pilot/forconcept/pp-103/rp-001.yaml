@@ -1,0 +1,96 @@
+id: RP-001
+idea_ref: idea://IDEA-103
+proposal_ref: proposal://PP-103
+iteration: 0
+findings:
+- claim: 'GitHub Models полностью закрыт 2026-07-30, но exposure экосистемы ≈ ноль: прямых
+    вызовов inference API не найдено, все model-пресеты spec-runner — CLI-агенты; стратегический
+    вывод «своя provider-абстракция полезна» сохранён, но направление явно де-приоритизировано
+    («someday», не P0).'
+  source_ref: prograph-vault/authored/notes/ecosystem-roadmap.md §0, §1.5
+  confidence: high
+- claim: 'Каталожный слой в arbiter уже реализован и влит: arbiter_core::catalog (парсинг
+    трёх плоскостей, валидация V1–V7, резолюция $ATP_CATALOG → XDG atp/, fail-loud, без bundled-дефолта)
+    плюс CLI arbiter-cli catalog path|check|list (merge 6a966a0, PR #39).'
+  source_ref: 'arbiter/docs/2026-07-05-catalog-loader-design.md; arbiter/TODO.md («Сделано»:
+    ADR-ECO-003b загрузчик user-config каталога)'
+  confidence: high
+- claim: 'route_task существует и эксплуатируется: arbiter_mcp::tools::route_task, Maestro
+    передаёт authority_context в constraints (RD-006 M4), ответ несёт metadata.decision_id
+    (arbiter#9).'
+  source_ref: arbiter/arbiter-cli/src/main.rs (use arbiter_mcp::tools::route_task); arbiter/TODO.md
+    (RD-006 M4, arbiter#9)
+  confidence: high
+- claim: 'Routing-grade данные из ATP уже текут контрактным путём и влияют на роутинг: проводка
+    report_benchmark → benchmark_runs → get_benchmark_score → apply_benchmark_rerank доказана
+    (R-07 Phase 1), а crossover-гейт на втором бенчмарке (req-extraction, atp-platform#279)
+    закрыт 2026-08-16 с выводом «сигнал task-зависим, глобального bias нет».'
+  source_ref: arbiter/docs/2026-08-16-r07-crossover-gate-analysis.md
+  confidence: high
+- claim: 'Зеркальный загрузчик на стороне ATP тоже шипнут (ADR-003b SP-A, 2026-07-07): atp/model_catalog/
+    с той же D2-резолюцией и CLI atp models init/list; method/agents-catalog.toml остаётся
+    dev-SSOT и в wheel не попадает.'
+  source_ref: atp-platform/TODO.md (ADR-003b SP-A ✅ 2026-07-07)
+  confidence: high
+- claim: Идентичность моделей унифицирована конвенцией agent_id <harness>@<model> с catalog-driven
+    скаффолдом agents.toml и retired-ключами — каталог уже де-факто точка знания о моделях.
+  source_ref: 'arbiter/TODO.md («Каталог и agent_id», PR #24–#38)'
+  confidence: high
+- claim: 'Ответ на открытый вопрос идеи «насколько arbiter-cli catalog loader покрывает требования»:
+    loader покрывает CLI-плоскость (path|check|list) полностью, но runtime arbiter-mcp каталог
+    НЕ потребляет — сервер стартует на вендоренном config/agents.toml, шипнутый бинарник не
+    видит $ATP_CATALOG/XDG; это открытый пункт arbiter @id:arbiter-mcp-catalog-loader.'
+  source_ref: 'arbiter/TODO.md (open: arbiter-mcp-catalog-loader); arbiter/docs/2026-07-05-catalog-loader-design.md
+    §1 «НЕ делаем»'
+  confidence: high
+constraints:
+- kind: internal
+  statement: Discovery моделей внутри arbiter запрещён — владелец discovery devtools (ADR-ECO-003a
+    D5); роутинг не должен опрашивать провайдеров.
+  source_ref: arbiter/TODO.md (границы, D5)
+- kind: standard
+  statement: 'Контракт каталога зафиксирован ADR-ECO-003b: user-config ($ATP_CATALOG → XDG
+    atp/), fail-loud, без bundled-дефолта; SSOT — atp-platform/method/agents-catalog.toml,
+    потребители вендорят/резолвят по контракту, runtime не читает dev-ресурсы.'
+  source_ref: arbiter/docs/2026-07-05-catalog-loader-design.md §2
+- kind: strategy
+  statement: 'Направление де-приоритизировано владельцем стратегии: §1.5 помечено «de-urgentized»,
+    это ПОЗДНЕЙШАЯ запись, отменяющая срочность первоначального анализа; более новых записей,
+    возвращающих срочность, в источнике нет.'
+  source_ref: prograph-vault/authored/notes/ecosystem-roadmap.md §1.5
+- kind: internal
+  statement: 'Полирепо-граница: реализация живёт в arbiter / atp-platform / devtools; product-governance
+    производит только proposal и handoff владельцам, не правки чужих репо.'
+  source_ref: all_ai_orchestrators/CLAUDE.md (границы подпроектов)
+gaps:
+- what: 'Последняя миля ADR-ECO-003b не пройдена: arbiter-mcp не подключён к arbiter_core::catalog
+    (открытый пункт arbiter-mcp-catalog-loader) и нет кросс-языкового conformance-теста трёх
+    загрузчиков (catalog-conformance-fixtures, владелец devtools) — без них гарантия «смена
+    провайдера без правок потребителей» не наблюдаема.'
+  blocks_approval: false
+- what: 'Не определён измеримый критерий ценности «смена провайдера без правок в потребителях»:
+    какой потребитель — референсный, каким evidence подтверждается swap; нужен от creator
+    как acceptance-контур концепта.'
+  blocks_approval: false
+brief_for_creator: 'Идея во многом уже реализована владельцами: каталожные загрузчики шипнуты
+  с обеих сторон (arbiter PR #39, ATP SP-A), route_task живой, routing-grade данные ATP реально
+  влияют на роутинг (rerank, crossover-гейт закрыт 2026-08-16, сигнал task-зависим). Продуктовый
+  остаток — «последняя миля»: (1) arbiter-mcp потребляет user-config каталог (открытый пункт
+  arbiter), (2) conformance трёх загрузчиков (devtools), (3) наблюдаемая гарантия provider-swap
+  для референсного потребителя. Срочность низкая — §1.5 де-приоритизирован, exposure к уходу
+  GitHub Models ноль. Рекомендуемый скоуп концепта: не «новый продукт», а закрытие последней
+  мили ADR-ECO-003b с измеримым swap-критерием; учесть запрет discovery в arbiter (D5).'
+requests_to_creator:
+- 'Определи измеримый acceptance «смена провайдера без правок потребителей»: референсный потребитель,
+  сценарий swap, какое evidence его подтверждает.'
+- 'Позиционируй концепт относительно де-приоритизации §1.5: почему делать сейчас (например,
+  малый остаток при готовой базе) — или честно предложи низкоприоритетное окно.'
+produced_by:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: researcher/v1
+produced_at: '2026-08-17T11:45:41Z'
+provenance:
+  brief_id: SBR-723635d45160
+  prompt_pack_hash: sha256:050d4bfbe16fb163fbeea8462dc3a038f5e779d0f62a28a5f7f52451eb1f6964

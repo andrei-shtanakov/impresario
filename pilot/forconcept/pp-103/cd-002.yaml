@@ -1,0 +1,75 @@
+id: CD-002
+idea_ref: idea://IDEA-103
+proposal_ref: proposal://PP-103
+iteration: 1
+value_prop: Любой инструмент экосистемы переживает смену или уход провайдера моделей правкой
+  одного user-config каталога — без правок кода и конфигов потребителей; стоимость «переезда
+  с провайдера» падает с ревизии всех потребителей (прецедент GitHub Models) до одного отредактированного
+  TOML плюс штатный scaffold-apply на стороне владельца arbiter.
+alternatives:
+- direction: Последняя миля ADR-ECO-003b (выбрано)
+  summary: 'Закрытие остатка уже построенного слоя: (1) arbiter-mcp валидирует agents.toml
+    против user-config каталога при старте (скоуп по дизайн-доку загрузчика, открытый пункт
+    arbiter-mcp-catalog-loader); (2) conformance трёх загрузчиков на общих фикстурах, сведённый
+    к одному owner-пути; (3) наблюдаемый provider-swap смоук retire+promote через $ATP_CATALOG
+    на референсном потребителе Maestro.'
+- direction: Полноценный продуктовый model-layer сервис
+  summary: 'Каталог + роутинг + управляемый lifecycle моделей как сервис, миграция всех потребителей.
+    Отклонено: противоречит де-приоритизации §1.5 (месяцы работы без горящей причины) и границе
+    D5 (discovery — не в arbiter).'
+- direction: Hold до внешнего триггера
+  summary: 'Заморозить до реального триггера (уход касающегося нас провайдера, второй потребитель
+    со swap-потребностью). Отклонено: оставляет оплаченную базу не сомкнутой, гарантия swap
+    остаётся ненаблюдаемой, два открытых пункта у владельцев продолжают висеть без приоритета.'
+chosen_direction:
+  direction: Последняя миля ADR-ECO-003b
+  why: 'Ответ на де-приоритизацию §1.5 — не «это срочно», а «это дёшево и смыкает оплаченное»:
+    загрузчики шипнуты у всех трёх участников (arbiter PR #39, ATP SP-A, Maestro feat/models-cli),
+    retire-семантика уже в валидации каталога (Check 5), rerank доказан crossover-гейтом 2026-08-16.
+    Остаток — два уже заведённых пункта у владельцев плюс смоук; после него направление можно
+    честно закрыть как выполненное, а не вечно «someday».'
+business_models:
+- 'Внутренняя платформенная инвестиция (cost-avoidance): страховка от повторения сценария
+  GitHub Models — цена реакции на уход провайдера фиксируется на уровне «правка каталога +
+  scaffold-apply у одного владельца», а не «ревизия всех потребителей».'
+assumptions:
+- text: 'Оба недостающих куска уже заведены как открытые пункты у владельцев (arbiter: arbiter-mcp-catalog-loader;
+    conformance: devtools/Maestro) — proposal приоритизирует существующую работу, не создаёт
+    новую.'
+  blocks_approval: false
+  answered_by: research-pack://RP-001
+- text: 'Срочность не вернулась: §1.5 «de-urgentized» — позднейшая запись источника стратегии,
+    отменяющих её записей нет.'
+  blocks_approval: false
+  answered_by: research-pack://RP-001
+- text: 'Референсный потребитель Maestro готов к swap-смоуку: загрузчик и models-CLI шипнуты;
+    канал смоука — явный $ATP_CATALOG (единственный общий слой резолюции трёх загрузчиков
+    до закрытия xdg-catalog-path).'
+  blocks_approval: false
+  answered_by: research-pack://RP-002
+- text: Схема каталога (три плоскости ADR-ECO-003) достаточна для swap-сценария без новых
+    полей; известный дефект Maestro models-duplicate-vendor-detection обходится смоуком с
+    одним vendor на model id; вскрытое недостающее поле — правка схемы SSOT, не новый контракт.
+  blocks_approval: false
+requests_to_researcher: []
+proposal_delta: 'Acceptance-контур уточнён фактурой RP-002: (a) arbiter-mcp при старте валидирует
+  agents.toml против user-config каталога ($ATP_CATALOG/XDG) — скоуп «валидация, не замена
+  enrollment-плоскости»; (b) conformance-фикстуры зелёные у трёх загрузчиков, работа сведена
+  к одному owner-пути (требование к handoff: назвать владельца — devtools-фикстуры либо Maestro
+  shared-lib — или явную последовательность); (c) swap-смоук: retire+promote правкой каталога
+  через явный $ATP_CATALOG; без правок кода и конфига у потребителей (Maestro); на стороне
+  arbiter допускается scaffold-apply agents.toml + рестарт; решение route_task отражает промоушн.
+  Value_prop и бизнес-модель уточнены оговоркой про scaffold-apply. Предположение о готовности
+  Maestro закрыто RP-002.'
+produced_by:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: creator/v1
+produced_at: '2026-08-17T11:49:10Z'
+provenance:
+  brief_id: SBR-63ee1b96ee56
+  prompt_pack_hash: sha256:b0fd734537a20b2edccdf34dbd5cf8a87b9ac3f761e6554349f77824c1651f8a
+based_on_research:
+  ref: research-pack://RP-002
+  iteration: 1

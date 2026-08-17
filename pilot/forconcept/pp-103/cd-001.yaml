@@ -1,0 +1,78 @@
+id: CD-001
+idea_ref: idea://IDEA-103
+proposal_ref: proposal://PP-103
+iteration: 0
+value_prop: Любой инструмент экосистемы переживает смену или уход провайдера моделей правкой
+  одного user-config каталога — без правок кода и конфигов потребителей; стоимость «переезда
+  с провайдера» падает с ревизии всех потребителей (прецедент GitHub Models) до одного отредактированного
+  TOML.
+alternatives:
+- direction: Последняя миля ADR-ECO-003b (выбрано)
+  summary: 'Не новый продукт, а закрытие остатка уже построенного слоя: (1) arbiter-mcp потребляет
+    user-config каталог ($ATP_CATALOG/XDG) вместо вендоренного config/agents.toml — открытый
+    пункт arbiter-mcp-catalog-loader; (2) кросс-языковой conformance-тест трёх загрузчиков
+    на общих фикстурах (catalog-conformance-fixtures, devtools); (3) наблюдаемый provider-swap
+    смоук на референсном потребителе. Малый остаток при готовой базе.'
+- direction: Полноценный продуктовый model-layer сервис
+  summary: 'Довести идею до «единственной точки знания о провайдерах» как сервиса: каталог
+    + роутинг + управляемый lifecycle моделей (retire/promote) + миграция всех потребителей
+    на слой. Противоречит де-приоритизации §1.5 (это месяцы работы без горящей причины) и
+    упирается в границу D5 (discovery — не в arbiter); отклонено как несоразмерное ценности
+    сейчас.'
+- direction: Hold до внешнего триггера
+  summary: 'Зафиксировать концепт и заморозить до реального триггера (уход провайдера, который
+    нас касается; второй потребитель, требующий swap). Честно по букве §1.5, но оставляет
+    уже оплаченную базу (загрузчики с обеих сторон, rerank-пайплайн) не сомкнутой: гарантия
+    swap так и останется ненаблюдаемой, а пункт arbiter-mcp-catalog-loader — висящим.'
+chosen_direction:
+  direction: Последняя миля ADR-ECO-003b
+  why: 'Ответ на де-приоритизацию §1.5 — не «это срочно», а «это дёшево»: база уже построена
+    и оплачена (loaders arbiter PR #39 и ATP SP-A, route_task живой, rerank доказан crossover-гейтом
+    2026-08-16), остаток — два уже заведённых открытых пункта у владельцев плюс смоук. Малая
+    инвестиция превращает «sound architecture for later» в закрытый, наблюдаемый контракт,
+    после чего направление можно честно закрыть.'
+business_models:
+- 'Внутренняя платформенная инвестиция (cost-avoidance): страховка от повторения сценария
+  GitHub Models — цена реакции на уход провайдера фиксируется на уровне «правка каталога»,
+  а не «ревизия всех потребителей».'
+assumptions:
+- text: 'Оба недостающих куска уже заведены как открытые пункты у владельцев (arbiter: arbiter-mcp-catalog-loader;
+    devtools: catalog-conformance-fixtures) — proposal не создаёт им новую работу, а приоритизирует
+    существующую.'
+  blocks_approval: false
+  answered_by: research-pack://RP-001
+- text: 'Срочность не вернулась: §1.5 «de-urgentized» — позднейшая запись источника стратегии,
+    более новых отменяющих записей нет.'
+  blocks_approval: false
+  answered_by: research-pack://RP-001
+- text: Схема каталога (три плоскости ADR-ECO-003) достаточна для swap-сценария без новых
+    полей; если реализация вскроет недостающее поле — это правка схемы SSOT, не нового контракта.
+  blocks_approval: false
+- text: Референсный потребитель для swap-смоука — Maestro через route_task (уже передаёт authority_context,
+    RD-006 M4); его собственный загрузчик каталога готов участвовать в conformance-наборе.
+  blocks_approval: false
+requests_to_researcher:
+- 'Проверь состояние загрузчика каталога на стороне Maestro (третий участник conformance-набора):
+  существует ли, читает ли user-config по D2-резолюции, есть ли открытые пункты — иначе acceptance
+  «три загрузчика» держится на невыясненном звене.'
+- 'Уточни механику swap-смоука в arbiter: покрывает ли catalog-driven скаффолд agents.toml
+  (retired-ключи, промоушн) сценарий «retire + promote» без ручной правки agents.toml, когда
+  arbiter-mcp начнёт читать user-config каталог.'
+proposal_delta: 'Первичное наполнение proposal: value_prop (swap правкой одного каталога),
+  выбранное направление «последняя миля ADR-ECO-003b» с отклонёнными альтернативами (полный
+  сервис — несоразмерен §1.5 и D5; hold — оставляет гарантию ненаблюдаемой), acceptance-контур:
+  (a) arbiter-mcp стартует на user-config каталоге, (b) conformance-фикстуры зелёные у трёх
+  загрузчиков (Maestro/ATP/arbiter), (c) provider-swap смоук: retire+promote записи в каталоге
+  меняет решение route_task без правок кода/конфига Maestro. Бизнес-модель — внутренний cost-avoidance.'
+produced_by:
+  kind: agent
+  id: claude
+  model: claude-fable-5
+  prompt_version: creator/v1
+produced_at: '2026-08-17T11:46:51Z'
+provenance:
+  brief_id: SBR-2f38fc56ae7e
+  prompt_pack_hash: sha256:b0fd734537a20b2edccdf34dbd5cf8a87b9ac3f761e6554349f77824c1651f8a
+based_on_research:
+  ref: research-pack://RP-001
+  iteration: 0
