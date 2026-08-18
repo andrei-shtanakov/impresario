@@ -113,12 +113,21 @@
   committee_chair; PR #31) → **approved v7**. Концепт: «последняя миля
   ADR-ECO-003b» (полный model-layer сервис отклонён по §1.5 и D5; hold
   отклонён). Бандл `pilot/forconcept/pp-103/`, 14 артефактов, валиден
-- [ ] arbiter: mcp-валидация agents.toml против user-config каталога +
-  provider-swap смоук (acceptance (a)+(c) PP-103) — inbox подан
-  2026-08-17, решение за владельцем @blocked_by:arbiter#72
-- [ ] devtools: conformance трёх загрузчиков каталога под одним
-  owner-путём, SSOT-фикстуры пином (acceptance (b) PP-103) — inbox подан
-  2026-08-17, решение за владельцем @blocked_by:devtools#43
+- [x] arbiter: mcp-валидация agents.toml против user-config каталога + provider-swap смоук (acceptance (a)+(c) PP-103) @blocked_by:arbiter#72 @id:pp103-acceptance-arbiter
+  **Доставлено 2026-08-17** (arbiter PR #73): `catalog_guard.rs` — сервер при
+  старте валидирует `agents.toml` против user-config каталога
+  (`$ATP_CATALOG` → XDG), fail-loud на невалидной паре (Check 5),
+  warn-and-start при отсутствии каталога; смоук
+  `orchestrator/tests/test_provider_swap_smoke.py` — retire X + promote Y
+  только правкой каталога переключает `route_task` X → Y при байтово
+  неизменном потребителе. Оба пункта arbiter закрыты
+  (`@id:arbiter-mcp-catalog-loader`, `@id:approved-pp-103-catalog-last-mile`)
+- [x] devtools: conformance трёх загрузчиков каталога под одним owner-путём, SSOT-фикстуры пином (acceptance (b) PP-103) @blocked_by:devtools#43 @id:pp103-acceptance-devtools
+  **Доставлено 2026-08-17** (devtools PR #44/#45/#46, `@id:catalog-conformance-single-owner`):
+  набор `contracts/catalog-conformance-fixtures/v1` опубликован с пином и
+  manifest'ом; потребители подключены (maestro #188-цепочка, arbiter #74/#76),
+  аддитивное расширение v1 закрыто (devtools#47), машиночитаемый словарь
+  enum'ов — devtools#51. Acceptance (b) PP-103 выполнен
 
 ## M3 — Kapelle battle-test
 
