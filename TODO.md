@@ -96,17 +96,19 @@
   копии живого зеркала (пин `a9d11fa`), вендорены `ranked-backlog/v1` и
   `loop-resume-decision/v1` (5 контрактов под одним пином), строго
   read-only
-- [ ] `waiting_since` в контракте wait'а `loop-state/v1` @id:loop-state-waiting-since
+- [x] `waiting_since` в контракте wait'а `loop-state/v1` @id:loop-state-waiting-since
   — inbox impresario#40 (from: ecosystem-kb, ADR-ECO-009 §8 / очередь решений
-  Д-3): идентичность wait'а `(loop_id, stop.iteration)` не фиксирует момент
-  начала ожидания ⇒ возраст ожидания и decision latency невычислимы.
-  Уточнение владельца: **нельзя выводить из `updatedAt`** — без доказуемой
-  точки перехода показывать `unknown`, не суррогат. Дизайн-вопрос: `stop.at`
-  уже пишется в момент перехода в needs_human — решить, является ли он
-  доказуемой точкой (тогда `waiting_since` = семантика поверх `stop.at`) или
-  нужно отдельное поле. Потребитель — dispatcher; расширение аддитивное
-  (не сужает множество валидных документов). Контекст:
-  `_cowork_output/cadence/decision-queue.md` п.1
+  Д-3). **Решение владельца (2026-08-28): вариант A — `waiting_since :=
+  stop.at` при `stop.verdict = needs_human`**, без нового поля: `stop.at`
+  пишется один раз, атомарно, вместе с переходом, re-run — no-op; это
+  `now`-вход материализовавшего запуска, т.е. доказуемая не-поздняя граница
+  начала ожидания (возраст — верхняя оценка; уточнение по ревью PR #44). Законтрактовано description'ами схемы + docs/semantics.md; инвариант
+  «повторный run не освежает stop.at» закреплён pin-тестом (байтовое равенство
+  `loop.state`). PR #44. Не из `updatedAt`; без валидного `stop` — `unknown`, не
+  суррогат. Аддитивно (валидные документы не сужены, без version bump), ноль
+  миграции — существующие state-файлы уже несут waiting_since. Потребитель
+  dispatcher: ре-вендор схемы + маппинг `stop.at → waiting_since` строки
+  очереди. Контекст: `_cowork_output/cadence/decision-queue.md` п.1
 - [x] **Сигнал `needs_human` законтрактован (loop-state/v1)**: `loop.state`
   промоутирован в контракт (projection, не журнал; identity
   `(loop_id, stop.iteration)`, freshness `stop.at`, terminal сохраняет

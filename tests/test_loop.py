@@ -215,6 +215,26 @@ def test_terminal_verdict_rerun_is_noop(loop_ws: Path) -> None:
     assert _trace_events(loop_ws) == trace_before
 
 
+def test_needs_human_rerun_preserves_waiting_since(loop_ws: Path) -> None:
+    """waiting_since of a wait is stop.at: written once, atomically, at the
+    transition into needs_human; a later re-run must not refresh it (#40)."""
+    result = _run(loop_ws, STUCK_SCRIPT)
+    assert result.verdict == "needs_human"
+    state_file = loop_ws / "loop.state"
+    before = state_file.read_bytes()
+    stop = json.loads(before)["stop"]
+    assert (stop["verdict"], stop["at"]) == ("needs_human", NOW)
+
+    rerun = run_loop(
+        loop_ws,
+        CONTRACTS_DIR,
+        ScriptedAgent(STUCK_SCRIPT),
+        now_iso="2026-08-14T09:00:00Z",
+    )
+    assert rerun.verdict == "needs_human"
+    assert state_file.read_bytes() == before
+
+
 @pytest.mark.parametrize(
     "boundary",
     [
