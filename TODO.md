@@ -103,7 +103,7 @@
   пишется один раз, атомарно, вместе с переходом (доказуемая точка), re-run —
   no-op. Законтрактовано description'ами схемы + docs/semantics.md; инвариант
   «повторный run не освежает stop.at» закреплён pin-тестом (байтовое равенство
-  `loop.state`). Не из `updatedAt`; без валидного `stop` — `unknown`, не
+  `loop.state`). PR #44. Не из `updatedAt`; без валидного `stop` — `unknown`, не
   суррогат. Аддитивно (валидные документы не сужены, без version bump), ноль
   миграции — существующие state-файлы уже несут waiting_since. Потребитель
   dispatcher: ре-вендор схемы + маппинг `stop.at → waiting_since` строки
