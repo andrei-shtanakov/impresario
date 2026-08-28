@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:impresario:contract:loop-state:v1",
   "title": "LoopState",
-  "description": "Текущий projection состояния цикла researcher ↔ creator (docs/semantics.md, «Состояние цикла»). Файл loop.state (JSON) в корне loop-workspace. stop: null — активного ожидания нет; stop.verdict = needs_human — активное ожидание человека. История остаётся в immutable evidence (ExchangeLog, trace).",
+  "description": "Текущий projection состояния цикла researcher ↔ creator (docs/semantics.md, «Состояние цикла»). Файл loop.state (JSON) в корне loop-workspace. stop: null — активного ожидания нет; stop.verdict = needs_human — активное ожидание человека; waiting_since этого ожидания — stop.at (см. описание поля). История остаётся в immutable evidence (ExchangeLog, trace).",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -61,7 +61,8 @@
               "minimum": 0
             },
             "at": {
-              "$ref": "#/$defs/timestamp"
+              "$ref": "#/$defs/timestamp",
+              "description": "Момент перехода в эту остановку: пишется один раз, атомарно, вместе с самим stop (validate-then-atomic-replace) и не освежается повторными запусками (re-run — no-op). При verdict = needs_human это waiting_since активного ожидания — возраст ожидания и decision latency считаются от него. Выводить waiting_since из mtime/updatedAt файла нельзя; при отсутствующем или невалидном stop возраст ожидания = unknown, не суррогат."
             }
           }
         }

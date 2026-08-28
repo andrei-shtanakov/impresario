@@ -226,6 +226,13 @@ exit code.
 - `stop.verdict = "needs_human"` — **активное ожидание человека**;
   `reason` обязателен и непуст. Identity ожидания —
   `(loop_id, stop.iteration)`; freshness — `stop.at`.
+- **`waiting_since` ожидания := `stop.at`** (impresario#40). `stop.at`
+  пишется один раз, атомарно, вместе с переходом в остановку и не
+  освежается повторными запусками (re-run — no-op), поэтому это
+  доказуемая точка начала ожидания: возраст ожидания и decision latency
+  (ADR-ECO-009 §8) считаются от него. Выводить `waiting_since` из
+  mtime/`updatedAt` файла нельзя; при отсутствующем или невалидном
+  `stop` возраст ожидания — `unknown`, не суррогат.
 - Terminal projection сохраняет stop: `ready_for_business` / `failed`
   не откатываются в `null`; единственный переход `stop → null` — resume
   из `needs_human` (`failed` не resumable, fail-closed).
