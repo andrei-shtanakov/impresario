@@ -92,9 +92,23 @@ hash_file() {
 # до одного файла и озеленял неполный кит (major десятого захода гейта на
 # #101). Сужение невозможно по построению: обязательные члены зашиты
 # всегда, env их не видит и не трогает.
-# `?scripts/review/harness-claude` — переходный член релиза 2026-09
-# (спека харнесс-слоя §7): обязательным становится следующим релизом кита.
-required_kit_default="scripts/review/build-prompt.sh scripts/review/collect-context.sh scripts/review/apply-threshold.sh scripts/review/local.sh scripts/review/checksum.sh .github/codex/review-schema.json ?scripts/review/harness-claude"
+# ТЕКУЩИЙ ПЕРЕХОДНЫЙ ЧЛЕН: `?scripts/review/prose-paths.env` (релиз 2026-09,
+# срез B области ревью). Двухфазный ре-вендор у потребителя: PR-1 — этот
+# инвентарь и его собственная строка PIN, PR-2 — файл правила и строка PIN
+# для него. Обязательным становится следующим релизом кита.
+#
+# История: `scripts/review/harness-claude` был переходным членом релиза
+# 2026-09 и промоцирован в обязательные волной devtools#228 (2026-09-14).
+#
+# ЭТОТ АБЗАЦ — ЕДИНСТВЕННЫЙ ОТВЕТ на вопрос «есть ли сейчас переходный член»:
+# README потребителей отправляет читателя сюда, а машинно состав виден только
+# в `required_kit_default` ниже — комментарии для чекера просто текст. Вводя
+# или промоцируя член, правьте оба места одним коммитом. Прежняя редакция
+# утверждала «переходных членов сейчас нет» на три строки выше абзаца,
+# вводившего новый: ложью это стало ровно в том коммите, что добавил второй
+# абзац (steward#173, steward#174 — прислали arbiter и atp-platform, найдя
+# расхождение своими ревью-контурами на догоняющих PR).
+required_kit_default="scripts/review/build-prompt.sh scripts/review/collect-context.sh scripts/review/apply-threshold.sh scripts/review/local.sh scripts/review/checksum.sh scripts/review/harness-claude .github/codex/review-schema.json ?scripts/review/prose-paths.env"
 required_kit="$required_kit_default${CHECKSUM_KIT_EXTRA:+ $CHECKSUM_KIT_EXTRA}"
 
 pin=""
