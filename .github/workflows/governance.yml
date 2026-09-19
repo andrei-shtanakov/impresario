@@ -12,9 +12,9 @@ on:
 
 jobs:
   governance:
-    uses: andrei-shtanakov/ai-orchestrators-workspace/.github/workflows/governance-gate.yml@51513e8aa0935e76b3327d6298409a683960a6fb
+    uses: andrei-shtanakov/ai-orchestrators-workspace/.github/workflows/governance-gate.yml@2f80dd4f93ebfbe06fa9000ea2c86a1d4a608697
     with:
-      umbrella-ref: "51513e8aa0935e76b3327d6298409a683960a6fb"   # same tag as the uses: pin above
+      umbrella-ref: "2f80dd4f93ebfbe06fa9000ea2c86a1d4a608697"   # same tag as the uses: pin above
       strict: true
       runtime-scan: true        # runtime code — GOV-003 applies
       authority-guard: false    # holds no authority-root paths
